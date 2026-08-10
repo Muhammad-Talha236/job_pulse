@@ -2,6 +2,9 @@ import { Route, Routes } from "react-router-dom";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import PublicLayout from "../layouts/PublicLayout";
+
+import ProtectedRoute from "../components/auth/ProtectedRoute";
+
 import RegisterPage from "../pages/RegisterPage";
 import DashboardPage from "../pages/DashboardPage";
 import HomePage from "../pages/HomePage";
@@ -14,7 +17,9 @@ function AppRoutes() {
   return (
     <Routes>
 
-      {/* Public Routes */}
+      {/* =====================================================
+          Public Routes
+          ===================================================== */}
 
       <Route element={<PublicLayout />}>
 
@@ -27,32 +32,46 @@ function AppRoutes() {
           path="/login"
           element={<LoginPage />}
         />
-        <Route path="/register" element={<RegisterPage />} />
-
-      </Route>
-
-      {/* Dashboard Routes */}
-
-      <Route element={<DashboardLayout />}>
 
         <Route
-          path="/dashboard"
-          element={<DashboardPage />}
-        />
-
-        <Route
-          path="/jobs"
-          element={<JobsPage />}
-        />
-
-        <Route
-          path="/saved-jobs"
-          element={<SavedJobsPage />}
+          path="/register"
+          element={<RegisterPage />}
         />
 
       </Route>
 
-      {/* 404 */}
+
+      {/* =====================================================
+          Protected Dashboard Routes
+          ===================================================== */}
+
+      <Route element={<ProtectedRoute />}>
+
+        <Route element={<DashboardLayout />}>
+
+          <Route
+            path="/dashboard"
+            element={<DashboardPage />}
+          />
+
+          <Route
+            path="/jobs"
+            element={<JobsPage />}
+          />
+
+          <Route
+            path="/saved-jobs"
+            element={<SavedJobsPage />}
+          />
+
+        </Route>
+
+      </Route>
+
+
+      {/* =====================================================
+          404
+          ===================================================== */}
 
       <Route
         path="*"

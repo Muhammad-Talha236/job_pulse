@@ -1,7 +1,7 @@
 // src/components/auth/RegisterForm.jsx
 
-import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import {
   Check,
   Eye,
@@ -62,14 +62,18 @@ const registerSchema = z
     path: ["confirmPassword"],
   });
 
-function RegisterForm() {
+function RegisterForm({
+  onSubmit,
+  loading = false,
+  serverError = "",
+}) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(registerSchema),
 
@@ -82,23 +86,20 @@ function RegisterForm() {
     },
   });
 
-  /*
-   * Temporary submit handler.
-   *
-   * Later this will call:
-   *
-   * POST /api/auth/register
-   */
-  const onSubmit = async (data) => {
-    console.log("Registration data:", data);
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    console.log("Registration form submitted successfully");
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-5"
+    >
+      {/* Server Error */}
+      {serverError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+        >
+          {serverError}
+        </div>
+      )}
 
       {/* Full Name */}
       <div>
@@ -205,7 +206,9 @@ function RegisterForm() {
             aria-label={
               showPassword ? "Hide password" : "Show password"
             }
-            onClick={() => setShowPassword((current) => !current)}
+            onClick={() =>
+              setShowPassword((current) => !current)
+            }
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
           >
             {showPassword ? (
@@ -223,7 +226,8 @@ function RegisterForm() {
         )}
 
         <p className="mt-2 text-xs text-slate-500">
-          Use at least 8 characters, one uppercase letter, and one number.
+          Use at least 8 characters, one uppercase letter, and one
+          number.
         </p>
       </div>
 
@@ -291,12 +295,6 @@ function RegisterForm() {
               className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               {...register("terms")}
             />
-
-            {/*
-             * The native checkbox is intentionally kept here.
-             * Later we can replace it with a reusable Checkbox
-             * component if needed.
-             */}
           </span>
 
           <span className="text-sm leading-5 text-slate-600">
@@ -328,10 +326,10 @@ function RegisterForm() {
       {/* Submit */}
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={loading}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmitting ? (
+        {loading ? (
           "Creating account..."
         ) : (
           <>
@@ -340,7 +338,6 @@ function RegisterForm() {
           </>
         )}
       </button>
-
     </form>
   );
 }

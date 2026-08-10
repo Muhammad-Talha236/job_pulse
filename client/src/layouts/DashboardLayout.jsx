@@ -8,6 +8,7 @@ import Sidebar from "../components/Sidebar";
 function DashboardLayout() {
   return (
     <>
+      {/* Dashboard Navbar */}
       <DashboardNavbar />
 
       <div
@@ -15,8 +16,10 @@ function DashboardLayout() {
           display: "flex",
         }}
       >
+        {/* Dashboard Sidebar */}
         <Sidebar />
 
+        {/* Dashboard Content */}
         <main
           style={{
             flex: 1,

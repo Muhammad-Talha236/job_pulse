@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  LogIn,
+  Mail,
+} from "lucide-react";
 
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,38 +16,60 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 /*
  * ---------------------------------------------------------
- * Validation Schema
+ * Login Validation Schema
  * ---------------------------------------------------------
  *
- * This schema describes what valid login data looks like.
+ * Login only requires:
+ *
+ * 1. Email
+ * 2. Password
  */
 const loginSchema = z.object({
   email: z
     .string()
+    .trim()
     .min(1, "Email is required")
     .email("Please enter a valid email address"),
 
   password: z
     .string()
-    .min(1, "Password is required")
-    .min(8, "Password must be at least 8 characters"),
+    .min(1, "Password is required"),
 });
+
 
 /*
  * ---------------------------------------------------------
  * Login Form
  * ---------------------------------------------------------
+ *
+ * Props:
+ *
+ * onSubmit
+ *   Function provided by LoginPage.
+ *   Responsible for calling the backend API.
+ *
+ * loading
+ *   Controlled by LoginPage while the API request is running.
+ *
+ * serverError
+ *   Error returned from the backend.
  */
-function LoginForm() {
+function LoginForm({
+  onSubmit,
+  loading = false,
+  serverError = "",
+}) {
   const [showPassword, setShowPassword] = useState(false);
 
   /*
+   * -------------------------------------------------------
    * React Hook Form
+   * -------------------------------------------------------
    */
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
 
@@ -51,32 +79,31 @@ function LoginForm() {
     },
   });
 
-  /*
-   * -------------------------------------------------------
-   * Submit Handler
-   * -------------------------------------------------------
-   *
-   * This function will eventually call:
-   *
-   * POST /api/auth/login
-   *
-   * For now we only log the validated data.
-   */
-  const onSubmit = async (data) => {
-    console.log("Login data:", data);
-
-    /*
-     * Temporary delay so we can see the loading state.
-     */
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    console.log("Login form submitted successfully");
-  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-5"
+    >
 
-      {/* Email */}
+      {/* -------------------------------------------------
+          Server Error
+      -------------------------------------------------- */}
+
+      {serverError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+        >
+          {serverError}
+        </div>
+      )}
+
+
+      {/* -------------------------------------------------
+          Email
+      -------------------------------------------------- */}
+
       <div>
         <label
           htmlFor="email"
@@ -114,8 +141,13 @@ function LoginForm() {
         )}
       </div>
 
-      {/* Password */}
+
+      {/* -------------------------------------------------
+          Password
+      -------------------------------------------------- */}
+
       <div>
+
         <div className="mb-2 flex items-center justify-between">
 
           <label
@@ -134,12 +166,14 @@ function LoginForm() {
 
         </div>
 
+
         <div className="relative">
 
           <LockKeyhole
             size={18}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
           />
+
 
           <input
             id="password"
@@ -154,13 +188,18 @@ function LoginForm() {
             {...register("password")}
           />
 
+
           <button
             type="button"
             aria-label={
-              showPassword ? "Hide password" : "Show password"
+              showPassword
+                ? "Hide password"
+                : "Show password"
             }
-            onClick={() => setShowPassword((current) => !current)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+            onClick={() =>
+              setShowPassword((current) => !current)
+            }
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
           >
             {showPassword ? (
               <EyeOff size={18} />
@@ -171,38 +210,35 @@ function LoginForm() {
 
         </div>
 
+
         {errors.password && (
           <p className="mt-2 text-sm text-red-600">
             {errors.password.message}
           </p>
         )}
-      </div>
-
-      {/* Remember Me */}
-      <div className="flex items-center">
-
-        <label className="flex cursor-pointer items-center gap-2">
-
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-          />
-
-          <span className="text-sm text-slate-600">
-            Remember me
-          </span>
-
-        </label>
 
       </div>
 
-      {/* Submit Button */}
+
+      {/* -------------------------------------------------
+          Submit
+      -------------------------------------------------- */}
+
       <button
         type="submit"
-        disabled={isSubmitting}
-        className="flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmitting ? "Signing in..." : "Sign in"}
+
+        {loading ? (
+          "Signing in..."
+        ) : (
+          <>
+            <LogIn size={18} />
+            Sign in
+          </>
+        )}
+
       </button>
 
     </form>

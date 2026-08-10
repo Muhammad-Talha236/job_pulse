@@ -108,3 +108,138 @@ Environment Variables
 Token Expiration
 Bearer Token
 Access Token
+
+
+
+Login Controller
+Credential Verification
+bcrypt.compare()
+Authentication Failure
+401 Unauthorized
+Generic Authentication Errors
+JWT Generation
+Stateless Authentication
+JWT Payload
+Safe User Object
+Sensitive Data Removal
+
+Express Middleware
+Authentication Middleware
+Authorization Header
+Bearer Token
+req.headers
+jwt.verify()
+Decoded JWT Payload
+req.user
+next()
+Protected Routes
+401 Unauthorized
+Middleware as a Security Gate
+Stateless Authentication
+
+Axios Instance
+API Client
+API Domain Modules
+Separation of Concerns
+Base URL
+Environment-specific Configuration
+Frontend → API → Backend Flow
+
+## Login Form Architecture
+
+The LoginForm is responsible for:
+
+- Collecting email and password
+- Client-side validation
+- Showing validation errors
+- Showing server errors
+- Showing loading state
+
+The LoginPage is responsible for:
+
+- Calling the login API
+- Managing authentication state
+- Handling API errors
+- Handling successful login
+- Navigating the user
+
+### Flow
+
+LoginForm
+    ↓
+React Hook Form
+    ↓
+Zod validation
+    ↓
+LoginPage.onSubmit()
+    ↓
+loginUser()
+    ↓
+apiClient
+    ↓
+Backend
+
+
+
+# Protected Routes
+
+A protected route is a route that requires authentication.
+
+Example:
+
+User requests /dashboard
+        ↓
+ProtectedRoute
+        ↓
+Is JWT token available?
+        ↓
+   ┌────┴────┐
+   ↓         ↓
+  YES        NO
+   ↓         ↓
+Dashboard   /login
+
+
+## React Router Outlet
+
+`Outlet` is used by React Router to render
+the matched child route inside a parent route.
+
+Example:
+
+<Route element={<ProtectedRoute />}>
+    <Route
+        path="/dashboard"
+        element={<Dashboard />}
+    />
+</Route>
+
+When `/dashboard` is requested:
+
+ProtectedRoute
+      ↓
+Outlet
+      ↓
+Dashboard
+
+
+## Frontend vs Backend Protection
+
+Frontend protection:
+
+ProtectedRoute
+    ↓
+Prevents unauthenticated users from
+opening protected pages.
+
+Backend protection:
+
+authMiddleware
+    ↓
+Verifies the JWT before allowing
+access to protected API endpoints.
+
+Both are required.
+
+Frontend protection improves UX.
+Backend protection provides actual API security.
