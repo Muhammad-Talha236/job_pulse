@@ -1,6 +1,21 @@
+// src/pages/HomePage.jsx
+
+import CTASection from "../components/landing/CTASection";
+import FeaturesSection from "../components/landing/FeaturesSection";
+import HeroSection from "../components/landing/HeroSection";
+import HowItWorksSection from "../components/landing/HowItWorksSection";
+
 function HomePage() {
   return (
-    <h1>Home Page</h1>
+    <>
+      <HeroSection />
+
+      <FeaturesSection />
+
+      <HowItWorksSection />
+
+      <CTASection />
+    </>
   );
 }
 

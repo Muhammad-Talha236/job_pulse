@@ -2,25 +2,20 @@
 
 import { Outlet } from "react-router-dom";
 
-import PublicNavbar from "../components/PublicNavbar";
 import Footer from "../components/Footer";
+import PublicNavbar from "../components/PublicNavbar";
 
 function PublicLayout() {
   return (
-    <>
+    <div className="min-h-screen bg-white">
       <PublicNavbar />
 
-      <main
-        style={{
-          minHeight: "calc(100vh - 130px)",
-          padding: "40px",
-        }}
-      >
+      <main>
         <Outlet />
       </main>
 
       <Footer />
-    </>
+    </div>
   );
 }
 

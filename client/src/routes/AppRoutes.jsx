@@ -2,7 +2,7 @@ import { Route, Routes } from "react-router-dom";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import PublicLayout from "../layouts/PublicLayout";
-
+import RegisterPage from "../pages/RegisterPage";
 import DashboardPage from "../pages/DashboardPage";
 import HomePage from "../pages/HomePage";
 import JobsPage from "../pages/JobsPage";
@@ -27,6 +27,7 @@ function AppRoutes() {
           path="/login"
           element={<LoginPage />}
         />
+        <Route path="/register" element={<RegisterPage />} />
 
       </Route>
 
