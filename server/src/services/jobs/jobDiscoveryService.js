@@ -9,6 +9,8 @@ export const discoverJobs = async ({
   location,
   page = 1,
 }) => {
+  const currentPage = Math.max(1, Number(page) || 1);
+
   const sources = [];
 
   // =========================================================
@@ -19,13 +21,8 @@ export const discoverJobs = async ({
     const adzunaData = await searchAdzunaJobs({
       query,
       location,
-      page,
+      page: currentPage,
     });
-
-    console.log(
-      "Adzuna raw results:",
-      adzunaData.results?.length || 0
-    );
 
     const jobs = (adzunaData.results || []).map(
       normalizeAdzunaJob
@@ -35,6 +32,7 @@ export const discoverJobs = async ({
       source: "adzuna",
       jobs,
       count: jobs.length,
+      total: adzunaData.count || 0,
     });
   } catch (error) {
     console.error(
@@ -44,20 +42,16 @@ export const discoverJobs = async ({
   }
 
   // =========================================================
-  // MUSE
+  // THE MUSE
   // =========================================================
 
   try {
     const museData = await searchMuseJobs({
       query,
       location,
-      page: Math.max(0, page - 1),
+      // Muse starts from page 0
+      page: currentPage - 1,
     });
-
-    console.log(
-      "Muse raw results:",
-      museData.results?.length || 0
-    );
 
     const jobs = (museData.results || []).map(
       normalizeMuseJob
@@ -67,6 +61,7 @@ export const discoverJobs = async ({
       source: "muse",
       jobs,
       count: jobs.length,
+      total: museData.total || 0,
     });
   } catch (error) {
     console.error(
@@ -76,31 +71,45 @@ export const discoverJobs = async ({
   }
 
   // =========================================================
-  // COMBINE
+  // COMBINE + DEDUPLICATE
   // =========================================================
 
-  const jobs = sources.flatMap(
+  const allJobs = sources.flatMap(
     (source) => source.jobs
   );
 
   const uniqueJobs = Array.from(
     new Map(
-      jobs.map((job) => [
+      allJobs.map((job) => [
         `${job.source}-${job.externalId}`,
         job,
       ])
     ).values()
   );
 
+  // =========================================================
+  // RESPONSE
+  // =========================================================
+
   return {
-    jobs: uniqueJobs,
     count: uniqueJobs.length,
+
+    jobs: uniqueJobs,
 
     sources: sources.map((source) => ({
       name: source.source,
       count: source.jobs.length,
+      total: source.total,
     })),
 
-    page,
+    page: currentPage,
+
+    hasNextPage: sources.some(
+      (source) =>
+        source.total > currentPage * 20 ||
+        source.jobs.length === 20
+    ),
+
+    hasPreviousPage: currentPage > 1,
   };
 };

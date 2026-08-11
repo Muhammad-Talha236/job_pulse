@@ -14,23 +14,13 @@ export const searchJobs = async (req, res) => {
       });
     }
 
-    const currentPage = Math.max(
-      1,
-      Number(page) || 1
-    );
-
     const data = await discoverJobs({
       query: query.trim(),
-      location: location?.trim() || "",
-      page: currentPage,
+      location: location?.trim(),
+      page: Number(page),
     });
 
-    return res.status(200).json({
-      count: data.count,
-      jobs: data.jobs,
-      sources: data.sources,
-      page: data.page,
-    });
+    return res.status(200).json(data);
   } catch (error) {
     console.error(
       "Job discovery error:",
