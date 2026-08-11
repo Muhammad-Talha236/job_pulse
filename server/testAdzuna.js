@@ -20,7 +20,7 @@ try {
       Accept: "application/json",
     },
 
-    timeout: 30000,
+    timeout: 60000,
   });
 
   console.log("SUCCESS");
