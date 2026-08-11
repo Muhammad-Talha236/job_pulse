@@ -1,35 +1,18 @@
-// src/layouts/DashboardLayout.jsx
-
 import { Outlet } from "react-router-dom";
 
 import DashboardNavbar from "../components/DashboardNavbar";
-import Sidebar from "../components/Sidebar";
 
 function DashboardLayout() {
   return (
-    <>
-      {/* Dashboard Navbar */}
+    <div className="min-h-screen bg-slate-50">
+      {/* Top Navigation */}
       <DashboardNavbar />
 
-      <div
-        style={{
-          display: "flex",
-        }}
-      >
-        {/* Dashboard Sidebar */}
-        <Sidebar />
-
-        {/* Dashboard Content */}
-        <main
-          style={{
-            flex: 1,
-            padding: "24px",
-          }}
-        >
-          <Outlet />
-        </main>
-      </div>
-    </>
+      {/* Page Content */}
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <Outlet />
+      </main>
+    </div>
   );
 }
 

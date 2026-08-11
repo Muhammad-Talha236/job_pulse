@@ -4,6 +4,10 @@ import { normalizeAdzunaJob } from "./jobNormalizer.js";
 import { searchMuseJobs } from "./museService.js";
 import { normalizeMuseJob } from "./museNormalizer.js";
 
+// =========================================================
+// DISCOVER JOBS
+// =========================================================
+
 export const discoverJobs = async ({
   query,
   location,
@@ -49,6 +53,7 @@ export const discoverJobs = async ({
     const museData = await searchMuseJobs({
       query,
       location,
+
       // Muse starts from page 0
       page: currentPage - 1,
     });

@@ -8,8 +8,11 @@ import {
   getJobById,
   updateJob,
   deleteJob,
+  saveJob,
+  unsaveJob,
+  getSavedJobs,
+  getRecommendedJobs,
 } from "../controllers/jobController.js";
-
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 
@@ -44,7 +47,37 @@ router.get(
   authMiddleware,
   getJobs
 );
+// =========================================================
+// RECOMMENDED JOBS
+// =========================================================
+// GET /api/jobs/recommended
 
+router.get(
+  "/recommended",
+  authMiddleware,
+  getRecommendedJobs
+);
+// =========================================================
+// SAVED JOBS
+// =========================================================
+
+router.post(
+  "/save",
+  authMiddleware,
+  saveJob
+);
+
+router.delete(
+  "/save",
+  authMiddleware,
+  unsaveJob
+);
+
+router.get(
+  "/saved",
+  authMiddleware,
+  getSavedJobs
+);
 
 /*
  * =========================================================
