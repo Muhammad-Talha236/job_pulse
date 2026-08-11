@@ -1,96 +1,129 @@
-// backend/src/middleware/authMiddleware.js
+// src/middleware/authMiddleware.js
 
 import jwt from "jsonwebtoken";
 
 /*
- * ---------------------------------------------------------
+ * =========================================================
  * Authentication Middleware
- * ---------------------------------------------------------
+ * =========================================================
  *
- * Protects routes that require a logged-in user.
+ * This middleware protects backend routes by verifying
+ * the JWT sent by the frontend.
  *
- * Expected header:
+ * Expected request header:
  *
  * Authorization: Bearer <JWT>
+ *
+ * If the token is valid:
+ *
+ * req.user = decoded token data
+ *
+ * If the token is missing or invalid:
+ *
+ * 401 Unauthorized
  */
-export const authenticate = (req, res, next) => {
+
+export const authMiddleware = (req, res, next) => {
   try {
     /*
-     * -----------------------------------------------------
-     * 1. Get Authorization header
-     * -----------------------------------------------------
+     * -------------------------------------------------------
+     * Get Authorization Header
+     * -------------------------------------------------------
      */
+
     const authHeader = req.headers.authorization;
+
+
+    /*
+     * -------------------------------------------------------
+     * Check if Authorization Header Exists
+     * -------------------------------------------------------
+     */
 
     if (!authHeader) {
       return res.status(401).json({
-        success: false,
         message: "Authentication required",
       });
     }
 
+
     /*
-     * -----------------------------------------------------
-     * 2. Check Bearer format
-     * -----------------------------------------------------
+     * -------------------------------------------------------
+     * Check Bearer Format
+     * -------------------------------------------------------
      *
      * Expected:
      *
-     * Bearer eyJhbGciOiJIUzI1Ni...
+     * Bearer eyJhbGciOi...
+     *
      */
+
     if (!authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
-        success: false,
         message: "Invalid authorization format",
       });
     }
 
+
     /*
-     * -----------------------------------------------------
-     * 3. Extract token
-     * -----------------------------------------------------
+     * -------------------------------------------------------
+     * Extract JWT
+     * -------------------------------------------------------
+     *
+     * Example:
+     *
+     * "Bearer abc123"
+     *
+     * becomes:
+     *
+     * "abc123"
      */
+
     const token = authHeader.split(" ")[1];
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token is missing",
-      });
-    }
 
     /*
-     * -----------------------------------------------------
-     * 4. Verify JWT
-     * -----------------------------------------------------
+     * -------------------------------------------------------
+     * Verify JWT
+     * -------------------------------------------------------
+     *
+     * JWT_SECRET must be the same secret used when
+     * the token was created during login.
      */
+
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET
     );
 
-    /*
-     * -----------------------------------------------------
-     * 5. Attach user information to request
-     * -----------------------------------------------------
-     */
-    req.user = {
-      id: decoded.userId,
-    };
 
     /*
-     * -----------------------------------------------------
-     * 6. Continue to controller
-     * -----------------------------------------------------
+     * -------------------------------------------------------
+     * Attach User Information to Request
+     * -------------------------------------------------------
+     *
+     * The controller can now access:
+     *
+     * req.user
      */
+
+    req.user = decoded;
+
+
+    /*
+     * -------------------------------------------------------
+     * Continue to Controller
+     * -------------------------------------------------------
+     */
+
     next();
 
   } catch (error) {
-    console.error("Authentication error:", error);
+
+    console.error("JWT authentication error:", error);
 
     return res.status(401).json({
-      success: false,
-      message: "Invalid or expired authentication token",
+      message: "Invalid or expired token",
     });
   }
 };

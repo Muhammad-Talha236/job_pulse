@@ -13,71 +13,44 @@ import LoginPage from "../pages/LoginPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import SavedJobsPage from "../pages/SavedJobsPage";
 
+import ProfilePage from "../pages/ProfilePage";
+
 function AppRoutes() {
   return (
     <Routes>
-
       {/* =====================================================
           Public Routes
           ===================================================== */}
 
       <Route element={<PublicLayout />}>
+        <Route path="/" element={<HomePage />} />
 
-        <Route
-          path="/"
-          element={<HomePage />}
-        />
+        <Route path="/login" element={<LoginPage />} />
 
-        <Route
-          path="/login"
-          element={<LoginPage />}
-        />
-
-        <Route
-          path="/register"
-          element={<RegisterPage />}
-        />
-
+        <Route path="/register" element={<RegisterPage />} />
       </Route>
-
 
       {/* =====================================================
           Protected Dashboard Routes
           ===================================================== */}
 
       <Route element={<ProtectedRoute />}>
-
         <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
 
-          <Route
-            path="/dashboard"
-            element={<DashboardPage />}
-          />
+          <Route path="/jobs" element={<JobsPage />} />
 
-          <Route
-            path="/jobs"
-            element={<JobsPage />}
-          />
+          <Route path="/saved-jobs" element={<SavedJobsPage />} />
 
-          <Route
-            path="/saved-jobs"
-            element={<SavedJobsPage />}
-          />
-
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
-
       </Route>
-
 
       {/* =====================================================
           404
           ===================================================== */}
 
-      <Route
-        path="*"
-        element={<NotFoundPage />}
-      />
-
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

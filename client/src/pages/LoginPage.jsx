@@ -4,7 +4,6 @@ import { ArrowLeft, Zap } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-import { loginUser } from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 
 import LoginForm from "../components/auth/LoginForm";
@@ -30,50 +29,34 @@ function LoginPage() {
    * Login Submit Handler
    * ---------------------------------------------------------
    */
-  const onSubmit = async (data) => {
-    try {
-      setLoading(true);
-      setServerError("");
+ const onSubmit = async (data) => {
+  try {
+    setLoading(true);
+    setServerError("");
 
-      /*
-       * Send credentials to backend.
-       */
-      const response = await loginUser(data);
+    const response = await login(data);
 
-      console.log("Login successful:", response);
+    console.log("Login successful:", response);
 
-      /*
-       * Give the authentication response to AuthContext.
-       *
-       * AuthContext now handles:
-       * - token
-       * - user
-       * - localStorage
-       * - React authentication state
-       */
-      login(response);
+    // Navigate to dashboard here
+    navigate("/dashboard");
 
-      /*
-       * Navigate to dashboard after authentication.
-       */
-      navigate("/dashboard");
+  } catch (error) {
+    console.error("Login failed:", error);
 
-    } catch (error) {
-      console.error("Login failed:", error);
+    const message =
+      error.response?.data?.message ||
+      "Unable to sign in";
 
-      const message =
-        error.response?.data?.message ||
-        "Unable to sign in. Please try again.";
+    setServerError(message);
 
-      setServerError(message);
-
-    } finally {
-      setLoading(false);
-    }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-6">
+    <main className="flex min-h-sc=reen items-center justify-center bg-slate-50 p-4 sm:p-6">
 
       <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl lg:grid-cols-2">
 

@@ -1,33 +1,42 @@
-// backend/src/routes/authRoutes.js
+// src/routes/authRoutes.js
 
 import express from "express";
 
 import {
-  registerUser,
-  loginUser,
+  registerUser as register,
+  loginUser as login,
+  getCurrentUser,
 } from "../controllers/authController.js";
-import { authenticate } from "../middleware/authMiddleware.js";
+
+import { authMiddleware } from "../middleware/authMiddleware.js";
+
 const router = express.Router();
 
 /*
- * POST /api/auth/register
+ * ---------------------------------------------------------
+ * Public Routes
+ * ---------------------------------------------------------
  *
- * Create a new user account.
+ * These routes do NOT require authentication.
  */
-router.post("/register", registerUser);
+
+// Register
+router.post("/register", register);
+
+// Login
+router.post("/login", login);
+
 
 /*
- * POST /api/auth/login
+ * ---------------------------------------------------------
+ * Protected Routes
+ * ---------------------------------------------------------
  *
- * Authenticate an existing user.
+ * These routes require a valid JWT.
  */
-router.post("/login", loginUser);
-router.get("/me", authenticate, (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "You are authenticated",
-    user: req.user,
-  });
-});
+
+// Get currently authenticated user
+router.get("/me", authMiddleware, getCurrentUser);
+
 
 export default router;

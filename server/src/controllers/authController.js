@@ -231,3 +231,24 @@ export const loginUser = async (req, res) => {
     });
   }
 };
+
+// Get currently authenticated user
+export const getCurrentUser = async (req, res) => {
+  try {
+    /*
+     * authMiddleware already verified the JWT
+     * and attached the decoded information to req.user.
+     */
+
+    return res.status(200).json({
+      user: req.user,
+    });
+
+  } catch (error) {
+    console.error("Get current user error:", error);
+
+    return res.status(500).json({
+      message: "Unable to get current user",
+    });
+  }
+};

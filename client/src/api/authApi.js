@@ -1,12 +1,16 @@
-// client/src/api/authApi.js
+// src/api/authApi.js
 
-import apiClient from "./apiClient";
+import axiosClient from "./axiosClient";
 
 /*
- * Register a new user.
+ * ---------------------------------------------------------
+ * Register User
+ * ---------------------------------------------------------
+ *
+ * Sends registration information to the backend.
  */
 export const registerUser = async (userData) => {
-  const response = await apiClient.post(
+  const response = await axiosClient.post(
     "/auth/register",
     userData
   );
@@ -14,11 +18,16 @@ export const registerUser = async (userData) => {
   return response.data;
 };
 
+
 /*
- * Login an existing user.
+ * ---------------------------------------------------------
+ * Login User
+ * ---------------------------------------------------------
+ *
+ * Sends login credentials to the backend.
  */
 export const loginUser = async (credentials) => {
-  const response = await apiClient.post(
+  const response = await axiosClient.post(
     "/auth/login",
     credentials
   );
