@@ -7,7 +7,99 @@ import { normalizeMuseJob } from "./museNormalizer.js";
 // =========================================================
 // DISCOVER JOBS
 // =========================================================
+const filterRelevantJobs = (
+  jobs,
+  query
+) => {
+  const normalizedQuery =
+    String(
+      query || ""
+    )
+      .trim()
+      .toLowerCase();
 
+  if (!normalizedQuery) {
+    return jobs;
+  }
+
+  const tokens =
+    normalizedQuery
+      .split(/\s+/)
+      .map((token) =>
+        token.replace(
+          /[^\w+#.-]/g,
+          ""
+        )
+      )
+      .filter(
+        (token) =>
+          token.length >= 2
+      );
+
+  if (
+    tokens.length === 0
+  ) {
+    return [];
+  }
+
+  return jobs.filter(
+    (job) => {
+      const searchableText = [
+        job?.title,
+        job?.company,
+        job?.description,
+        job?.location,
+        job?.contractType,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      if (!searchableText) {
+        return false;
+      }
+
+      // Exact phrase match
+      if (
+        searchableText.includes(
+          normalizedQuery
+        )
+      ) {
+        return true;
+      }
+
+      const matchedTokens =
+        tokens.filter(
+          (token) =>
+            searchableText.includes(
+              token
+            )
+        ).length;
+
+      // Single word:
+      // it MUST actually exist.
+      if (
+        tokens.length === 1
+      ) {
+        return (
+          matchedTokens === 1
+        );
+      }
+
+      // Multiple words:
+      // at least half should match.
+      const minimumMatches =
+        Math.ceil(
+          tokens.length / 2
+        );
+
+      return (
+        matchedTokens >=
+        minimumMatches
+      );
+    }
+  );
+};
 export const discoverJobs = async ({
   query,
   location,
@@ -91,30 +183,38 @@ export const discoverJobs = async ({
       ])
     ).values()
   );
-
+const relevantJobs =
+  filterRelevantJobs(
+    uniqueJobs,
+    query
+  );
   // =========================================================
   // RESPONSE
   // =========================================================
+return {
+  count: relevantJobs.length,
 
-  return {
-    count: uniqueJobs.length,
+  jobs: relevantJobs,
 
-    jobs: uniqueJobs,
-
-    sources: sources.map((source) => ({
+  sources: sources.map(
+    (source) => ({
       name: source.source,
       count: source.jobs.length,
       total: source.total,
-    })),
+    })
+  ),
 
-    page: currentPage,
+  page: currentPage,
 
-    hasNextPage: sources.some(
+  hasNextPage:
+    sources.some(
       (source) =>
-        source.total > currentPage * 20 ||
+        source.total >
+          currentPage * 20 ||
         source.jobs.length === 20
     ),
 
-    hasPreviousPage: currentPage > 1,
-  };
+  hasPreviousPage:
+    currentPage > 1,
+};
 };

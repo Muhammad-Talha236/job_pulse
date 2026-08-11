@@ -1,199 +1,180 @@
+import { discoverJobs } from "./jobDiscoveryService.js";
+
 // =========================================================
-// JOB PULSE - SEARCH SUGGESTIONS
+// SEARCH SUGGESTIONS
 // =========================================================
 
-const SKILLS = [
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "React.js",
-  "React Developer",
-  "Next.js",
-  "Vue.js",
-  "Angular",
-  "Node.js",
-  "Node.js Developer",
-  "Express.js",
-  "MongoDB",
-  "PostgreSQL",
-  "MySQL",
-  "SQL",
-  "Python",
-  "Python Developer",
-  "Django",
-  "FastAPI",
-  "Java",
-  "Java Developer",
-  "Spring Boot",
-  "C++",
-  "C#",
-  ".NET",
-  "PHP",
-  "Laravel",
-  "Ruby",
-  "Ruby on Rails",
-  "Go",
-  "Rust",
-  "Flutter",
-  "React Native",
-  "Android",
-  "iOS",
-  "Kotlin",
-  "Swift",
-  "HTML",
-  "CSS",
-  "Tailwind CSS",
-  "Bootstrap",
-  "Git",
-  "GitHub",
-  "Docker",
-  "Kubernetes",
-  "AWS",
-  "Azure",
-  "Google Cloud",
-  "DevOps",
-  "Machine Learning",
-  "Artificial Intelligence",
-  "Data Science",
-  "Data Analyst",
-  "TensorFlow",
-  "PyTorch",
-  "Cybersecurity",
-  "UI/UX Design",
-  "Figma",
-  "WordPress",
-];
-
-const JOB_ROLES = [
-  "Software Engineer",
-  "Software Developer",
-  "Frontend Developer",
-  "Backend Developer",
-  "Full Stack Developer",
-  "Full Stack Engineer",
-  "Web Developer",
-  "React Developer",
-  "Node.js Developer",
-  "Python Developer",
-  "Java Developer",
-  "Mobile Developer",
-  "React Native Developer",
-  "Flutter Developer",
-  "DevOps Engineer",
-  "Cloud Engineer",
-  "Data Analyst",
-  "Data Scientist",
-  "Machine Learning Engineer",
-  "AI Engineer",
-  "Cybersecurity Engineer",
-  "QA Engineer",
-  "QA Tester",
-  "Automation Tester",
-  "UI/UX Designer",
-  "Product Designer",
-  "Product Manager",
-  "Project Manager",
-  "Business Analyst",
-  "Database Administrator",
-  "System Administrator",
-];
-
-const LOCATIONS = [
-  "Lahore",
-  "Karachi",
-  "Islamabad",
-  "Rawalpindi",
-  "Faisalabad",
-  "Multan",
-  "Peshawar",
-  "Quetta",
-  "Sialkot",
-  "Gujranwala",
-  "Hyderabad",
-  "Bahawalpur",
-  "Abbottabad",
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
-  "Germany",
-  "Dubai",
-  "Abu Dhabi",
-  "Remote",
-];
-
-const normalize = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase();
-
-const getSuggestions = ({
+export const getSuggestions = ({
   query = "",
-  type = "skill",
-}) => {
-  const search = normalize(query);
+  skills = [],
+  locations = [],
+} = {}) => {
+  const normalizedQuery = query.trim().toLowerCase();
 
-  if (!search) {
-    return [];
+  if (!normalizedQuery) {
+    return {
+      skills: [],
+      locations: [],
+    };
   }
 
-  let source = [];
-
-  if (type === "location") {
-    source = LOCATIONS;
-  } else if (type === "role") {
-    source = JOB_ROLES;
-  } else {
-    source = [
-      ...SKILLS,
-      ...JOB_ROLES,
-    ];
-  }
-
-  return source
-    .filter((item) =>
-      normalize(item).includes(search)
+  const uniqueSkills = [...new Set(skills)]
+    .filter(Boolean)
+    .filter((skill) =>
+      skill.toLowerCase().includes(normalizedQuery)
     )
-    .sort((a, b) => {
-      const aValue = normalize(a);
-      const bValue = normalize(b);
-
-      // Exact beginning match first
-      const aStarts = aValue.startsWith(search);
-      const bStarts = bValue.startsWith(search);
-
-      if (aStarts && !bStarts) return -1;
-      if (!aStarts && bStarts) return 1;
-
-      return aValue.localeCompare(bValue);
-    })
     .slice(0, 8);
+
+  const uniqueLocations = [...new Set(locations)]
+    .filter(Boolean)
+    .filter((location) =>
+      location.toLowerCase().includes(normalizedQuery)
+    )
+    .slice(0, 8);
+
+  return {
+    skills: uniqueSkills,
+    locations: uniqueLocations,
+  };
 };
 
-const isValidSearchQuery = (query) => {
-  const search = normalize(query);
+// =========================================================
+// SEARCH VALIDATION
+// =========================================================
 
-  if (!search) {
+export const isValidSearchQuery = (query) => {
+  if (!query || typeof query !== "string") {
     return false;
   }
 
-  const allTerms = [
-    ...SKILLS,
-    ...JOB_ROLES,
-  ];
+  const value = query.trim();
 
-  return allTerms.some((item) => {
-    const value = normalize(item);
+  if (value.length < 2) {
+    return false;
+  }
 
-    return (
-      value === search ||
-      value.includes(search) ||
-      search.includes(value)
-    );
-  });
+  if (value.length > 100) {
+    return false;
+  }
+
+  if (!/[a-zA-Z0-9]/.test(value)) {
+    return false;
+  }
+
+  return true;
 };
 
-export {
-  getSuggestions,
-  isValidSearchQuery,
+// =========================================================
+// PROFILE BASED JOB SUGGESTIONS
+// =========================================================
+
+export const generateJobSuggestions = async (profile) => {
+  if (!profile) {
+    return {
+      jobs: [],
+      message:
+        "Complete your profile to get personalized job recommendations.",
+    };
+  }
+
+  const skills = Array.isArray(profile.skills)
+    ? profile.skills
+    : [];
+
+  const preferredRoles = Array.isArray(
+    profile.preferred_roles
+  )
+    ? profile.preferred_roles
+    : [];
+
+  const preferredTechnologies = Array.isArray(
+    profile.preferred_technologies
+  )
+    ? profile.preferred_technologies
+    : [];
+
+  const location =
+    profile.preferred_location || "";
+
+  /*
+   * Combine profile information.
+   * Skills are given priority because they are
+   * the main recommendation signal.
+   */
+
+  const searchTerms = [
+    ...skills,
+    ...preferredRoles,
+    ...preferredTechnologies,
+  ]
+    .filter(Boolean)
+    .map((item) => String(item).trim())
+    .filter(Boolean);
+
+  const uniqueTerms = [
+    ...new Set(
+      searchTerms.map((item) =>
+        item.toLowerCase()
+      )
+    ),
+  ];
+
+  if (uniqueTerms.length === 0) {
+    return {
+      jobs: [],
+      message:
+        "Add skills or preferred roles to your profile to get recommendations.",
+    };
+  }
+
+  /*
+   * Search using profile terms.
+   *
+   * We don't send all skills as one giant query because
+   * that can make external job APIs return poor results.
+   */
+
+  const recommendationMap = new Map();
+
+  for (const term of uniqueTerms.slice(0, 5)) {
+    try {
+      const result = await discoverJobs({
+        query: term,
+        location,
+        page: 1,
+      });
+
+      for (const job of result.jobs || []) {
+        const key =
+          `${job.source}-${job.externalId}`.toLowerCase();
+
+        if (!recommendationMap.has(key)) {
+          recommendationMap.set(key, {
+            ...job,
+            matchedProfileTerm: term,
+          });
+        }
+      }
+    } catch (error) {
+      console.error(
+        `Recommendation search failed for "${term}":`,
+        error.message
+      );
+    }
+  }
+
+  const jobs = Array.from(
+    recommendationMap.values()
+  );
+
+  return {
+    count: jobs.length,
+    jobs: jobs.slice(0, 20),
+    basedOn: {
+      skills,
+      preferredRoles,
+      preferredTechnologies,
+      location,
+    },
+  };
 };
