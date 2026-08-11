@@ -1,4 +1,4 @@
-import { searchAdzunaJobs } from "../services/jobs/adzunaService.js";
+import { discoverJobs } from "../services/jobs/jobDiscoveryService.js";
 
 export const searchJobs = async (req, res) => {
   try {
@@ -8,7 +8,7 @@ export const searchJobs = async (req, res) => {
       page = 1,
     } = req.query;
 
-    if (!query) {
+    if (!query?.trim()) {
       return res.status(400).json({
         message: "Search query is required",
       });
@@ -19,22 +19,17 @@ export const searchJobs = async (req, res) => {
       Number(page) || 1
     );
 
-    const data = await searchAdzunaJobs({
-      query,
-      location,
+    const data = await discoverJobs({
+      query: query.trim(),
+      location: location?.trim() || "",
       page: currentPage,
     });
 
     return res.status(200).json({
-      source: "adzuna",
-      count: data.count || 0,
-      jobs: data.results || [],
-      page: currentPage,
-
-      // Adzuna doesn't necessarily give us a simple
-      // total-pages field, so the frontend can use
-      // whether the returned page has jobs.
-      hasResults: (data.results || []).length > 0,
+      count: data.count,
+      jobs: data.jobs,
+      sources: data.sources,
+      page: data.page,
     });
   } catch (error) {
     console.error(
