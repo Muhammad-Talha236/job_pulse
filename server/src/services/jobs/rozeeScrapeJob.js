@@ -2,9 +2,9 @@
 
 import cron from "node-cron";
 
-import { searchRozeeJobs } from "../services/scrapers/rozeeScraper.js";
-import { normalizeRozeeJob } from "../services/scrapers/rozeeNormalizer.js";
-import { upsertExternalJobs } from "../repositories/externalJobsRepository.js";
+import { searchRozeeJobs } from "../scrapers/rozeeScraper.js";
+import { normalizeRozeeJob } from "../scrapers/rozeeNormalizer.js";
+import { upsertExternalJobs } from "../../repositories/externalJobsRepository.js";
 
 /*
  * =========================================================

@@ -3,8 +3,11 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+
+import axios from "axios";
 
 import {
   Globe2,
@@ -105,6 +108,23 @@ function JobsPage() {
   const [error, setError] = useState("");
 
   // =========================================================
+  // RACE PROTECTION + RETRY
+  // =========================================================
+  //
+  // abortControllerRef tracks the in-flight manual search
+  // request. If the user searches again (or clicks a
+  // suggestion and searches) before the previous request
+  // finishes, we cancel the stale one so its response can
+  // never overwrite newer results.
+  //
+  // lastSearch remembers the most recent query/location so
+  // the error state's "Try again" button can re-run the
+  // exact same search without the user retyping anything.
+
+  const abortControllerRef = useRef(null);
+  const [lastSearch, setLastSearch] = useState(null);
+
+  // =========================================================
   // PAGINATION (client-side only)
   // =========================================================
 
@@ -176,6 +196,11 @@ function JobsPage() {
   // Fetches the FULL relevant list for a query once.
   // Pagination afterwards is purely local (see the effect
   // below that slices searchResults by `page`).
+  //
+  // Race protection: any previous in-flight search request
+  // is aborted before starting a new one, and the response
+  // of an aborted request is ignored even if it resolves
+  // after the abort() call (defensive double-check).
 
   const fetchManualJobs = async (
     searchQuery,
@@ -190,14 +215,34 @@ function JobsPage() {
       return;
     }
 
+    // Cancel any in-flight search before starting a new one.
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoadingSearch(true);
       setError("");
 
+      setLastSearch({
+        query: trimmedQuery,
+        location: searchLocation.trim(),
+      });
+
       const data = await searchJobs(
         trimmedQuery,
-        searchLocation.trim()
+        searchLocation.trim(),
+        controller.signal
       );
+
+      // This request was superseded by a newer one — ignore
+      // its result even though the request itself resolved.
+      if (abortControllerRef.current !== controller) {
+        return;
+      }
 
       const discoveredJobs = (
         data?.jobs || []
@@ -206,6 +251,17 @@ function JobsPage() {
       setSearchResults(discoveredJobs);
       setPage(1);
     } catch (requestError) {
+      // Request was intentionally cancelled — not a real
+      // error, so don't show anything to the user.
+      const wasCancelled =
+        requestError?.name === "CanceledError" ||
+        requestError?.code === "ERR_CANCELED" ||
+        axios.isCancel?.(requestError);
+
+      if (wasCancelled) {
+        return;
+      }
+
       console.error(
         "Manual job search failed:",
         requestError
@@ -218,12 +274,47 @@ function JobsPage() {
       setError(
         requestError?.response?.data
           ?.message ||
-          "Unable to fetch jobs. Please try again."
+          "Unable to fetch jobs. Please check your connection and try again."
       );
     } finally {
-      setLoadingSearch(false);
+      if (abortControllerRef.current === controller) {
+        setLoadingSearch(false);
+      }
     }
   };
+
+  // =========================================================
+  // RETRY
+  // =========================================================
+  //
+  // Used by the error state's "Try again" button. Re-runs
+  // the last manual search if there was one, otherwise
+  // refreshes recommendations.
+
+  const handleRetry = () => {
+    if (lastSearch?.query) {
+      fetchManualJobs(
+        lastSearch.query,
+        lastSearch.location
+      );
+
+      return;
+    }
+
+    if (!hasSearched) {
+      refreshRecommendations();
+    }
+  };
+
+  // =========================================================
+  // CLEANUP IN-FLIGHT REQUEST ON UNMOUNT
+  // =========================================================
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   // =========================================================
   // LOCAL PAGINATION
@@ -487,6 +578,12 @@ function JobsPage() {
       setSearchResults([]);
 
       setPage(1);
+
+      setLastSearch(null);
+
+      // Cancel any in-flight manual search — we're leaving
+      // manual-search mode entirely.
+      abortControllerRef.current?.abort();
 
       // Allow recommendations to populate the job list again.
       setHasSearched(false);
@@ -899,6 +996,7 @@ function JobsPage() {
           hasProfileSkills={
             recommendedSkills.length > 0
           }
+          onRetry={handleRetry}
         />
 
       </main>

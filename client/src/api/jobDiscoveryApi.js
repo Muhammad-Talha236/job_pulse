@@ -20,11 +20,16 @@ const getAuthHeaders = () => {
  * There is no "page" parameter anymore — pagination
  * (10 jobs per page) is handled entirely on the frontend
  * from this single result set.
+ *
+ * `signal` (optional): an AbortController signal. Pass this
+ * so callers can cancel a stale in-flight search (e.g. the
+ * user searched again before the previous request finished).
  */
 
 export const searchJobs = async (
   query,
-  location = ""
+  location = "",
+  signal
 ) => {
   const response = await axios.get(
     `${API_URL}/job-discovery/search`,
@@ -35,6 +40,8 @@ export const searchJobs = async (
       },
 
       headers: getAuthHeaders(),
+
+      signal,
     }
   );
 

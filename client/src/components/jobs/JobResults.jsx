@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Database,
+  RotateCcw,
   Sparkles,
 } from "lucide-react";
 
@@ -24,6 +25,7 @@ export default function JobResults({
   onNextPage,
   onPreviousPage,
   hasProfileSkills,
+  onRetry,
 }) {
   const isSaved = (job) =>
     savedJobs.some((savedJob) => {
@@ -55,24 +57,44 @@ export default function JobResults({
   // =========================================================
   // ERROR
   // =========================================================
+  //
+  // Includes a "Try again" button so a network hiccup or a
+  // dead backend doesn't force the user to retype their
+  // search or refresh the whole page.
 
   if (error) {
     return (
-      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-        <AlertCircle
-          size={20}
-          className="mt-0.5 shrink-0"
-        />
+      <div
+        role="alert"
+        className="mb-6 flex flex-col items-start gap-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex items-start gap-3">
+          <AlertCircle
+            size={20}
+            className="mt-0.5 shrink-0"
+          />
 
-        <div>
-          <p className="font-bold">
-            Something went wrong
-          </p>
+          <div>
+            <p className="font-bold">
+              Something went wrong
+            </p>
 
-          <p className="mt-1 text-sm text-red-600">
-            {error}
-          </p>
+            <p className="mt-1 text-sm text-red-600">
+              {error}
+            </p>
+          </div>
         </div>
+
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-100"
+          >
+            <RotateCcw size={15} />
+            Try again
+          </button>
+        )}
       </div>
     );
   }
@@ -80,14 +102,26 @@ export default function JobResults({
   // =========================================================
   // LOADING
   // =========================================================
+  //
+  // Six skeleton cards instead of three — closer to what a
+  // real page of results actually looks like, so the loading
+  // state doesn't read as a stripped-down placeholder.
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map(
-          (item) => (
+      <div
+        className="space-y-4"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span className="sr-only">
+          Loading jobs…
+        </span>
+
+        {Array.from({ length: 6 }).map(
+          (_, index) => (
             <div
-              key={item}
+              key={index}
               className="animate-pulse rounded-2xl border border-slate-200 bg-white p-6"
             >
               <div className="flex gap-4">

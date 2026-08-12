@@ -4,7 +4,7 @@ import "dotenv/config";
 
 import app from "./app.js";
 import { connectDatabase } from "./config/db.js";
-import { startRozeeScrapeSchedule } from "./jobs/rozeeScrapeJob.js";
+import { startRozeeScrapeSchedule } from "./services/jobs/rozeeScrapeJob.js";
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
