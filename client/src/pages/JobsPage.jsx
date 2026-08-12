@@ -37,6 +37,17 @@ import {
 
 import { useJobs } from "../context/JobContext";
 
+// =========================================================
+// PAGE SIZE
+// =========================================================
+//
+// Backend now returns the FULL relevant job list for a
+// manual search in one response. We slice that list into
+// pages of 10 entirely on the frontend, so clicking
+// Next / Previous never triggers another backend/API call.
+
+const PAGE_SIZE = 10;
+
 function JobsPage() {
   // =========================================================
   // SEARCH STATE
@@ -65,7 +76,14 @@ function JobsPage() {
   // JOB STATE
   // =========================================================
 
+  // Full relevant result set from a manual search
+  // (before local pagination is applied).
+  const [searchResults, setSearchResults] = useState([]);
+
+  // Jobs currently shown on screen (either the current
+  // page slice of searchResults, or recommendations).
   const [jobs, setJobs] = useState([]);
+
   const [savedJobs, setSavedJobs] = useState([]);
 
   // =========================================================
@@ -87,15 +105,17 @@ function JobsPage() {
   const [error, setError] = useState("");
 
   // =========================================================
-  // PAGINATION
+  // PAGINATION (client-side only)
   // =========================================================
 
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] =
-    useState(false);
 
-  const [hasPreviousPage, setHasPreviousPage] =
-    useState(false);
+  const hasNextPage =
+    hasSearched &&
+    page * PAGE_SIZE < searchResults.length;
+
+  const hasPreviousPage =
+    hasSearched && page > 1;
 
   // =========================================================
   // SAVE STATE
@@ -152,16 +172,20 @@ function JobsPage() {
   // =========================================================
   // FETCH MANUAL JOBS
   // =========================================================
+  //
+  // Fetches the FULL relevant list for a query once.
+  // Pagination afterwards is purely local (see the effect
+  // below that slices searchResults by `page`).
 
   const fetchManualJobs = async (
     searchQuery,
-    searchLocation = "",
-    requestedPage = 1
+    searchLocation = ""
   ) => {
     const trimmedQuery =
       searchQuery.trim();
 
     if (!trimmedQuery) {
+      setSearchResults([]);
       setJobs([]);
       return;
     }
@@ -172,40 +196,24 @@ function JobsPage() {
 
       const data = await searchJobs(
         trimmedQuery,
-        searchLocation.trim(),
-        requestedPage
+        searchLocation.trim()
       );
 
       const discoveredJobs = (
         data?.jobs || []
       ).map(normalizeJob);
 
-      setJobs(discoveredJobs);
-
-      setPage(
-        data?.page || requestedPage
-      );
-
-      setHasNextPage(
-        Boolean(data?.hasNextPage)
-      );
-
-      setHasPreviousPage(
-        Boolean(data?.hasPreviousPage)
-      );
+      setSearchResults(discoveredJobs);
+      setPage(1);
     } catch (requestError) {
       console.error(
         "Manual job search failed:",
         requestError
       );
 
+      setSearchResults([]);
       setJobs([]);
-
       setPage(1);
-
-      setHasNextPage(false);
-
-      setHasPreviousPage(false);
 
       setError(
         requestError?.response?.data
@@ -216,6 +224,29 @@ function JobsPage() {
       setLoadingSearch(false);
     }
   };
+
+  // =========================================================
+  // LOCAL PAGINATION
+  // =========================================================
+  //
+  // Whenever the full search result set or the current
+  // page changes, slice out the 10 jobs for that page.
+  // No backend call happens here.
+
+  useEffect(() => {
+    if (!hasSearched) {
+      return;
+    }
+
+    const start = (page - 1) * PAGE_SIZE;
+
+    setJobs(
+      searchResults.slice(
+        start,
+        start + PAGE_SIZE
+      )
+    );
+  }, [searchResults, page, hasSearched]);
 
   // =========================================================
   // INITIAL PAGE LOAD
@@ -322,10 +353,6 @@ function JobsPage() {
           );
 
           setPage(1);
-
-          setHasNextPage(false);
-
-          setHasPreviousPage(false);
         }
       } catch (requestError) {
         console.error(
@@ -441,8 +468,7 @@ function JobsPage() {
 
     await fetchManualJobs(
       trimmedQuery,
-      trimmedLocation,
-      1
+      trimmedLocation
     );
   };
 
@@ -458,11 +484,9 @@ function JobsPage() {
 
       setLocation("");
 
+      setSearchResults([]);
+
       setPage(1);
-
-      setHasNextPage(false);
-
-      setHasPreviousPage(false);
 
       // Allow recommendations to populate the job list again.
       setHasSearched(false);
@@ -582,25 +606,31 @@ function JobsPage() {
   };
 
   // =========================================================
-  // PAGINATION
+  // PAGINATION (client-side)
   // =========================================================
+  //
+  // No backend call happens here anymore — we just move
+  // to a different slice of the already-fetched
+  // searchResults array.
 
-  const loadPage = async (
-    requestedPage
-  ) => {
+  const loadPage = (requestedPage) => {
+    if (!hasSearched) {
+      return;
+    }
+
+    const maxPage = Math.max(
+      1,
+      Math.ceil(searchResults.length / PAGE_SIZE)
+    );
+
     if (
-      loadingSearch ||
       requestedPage < 1 ||
-      !query.trim()
+      requestedPage > maxPage
     ) {
       return;
     }
 
-    await fetchManualJobs(
-      query,
-      location,
-      requestedPage
-    );
+    setPage(requestedPage);
   };
 
   // =========================================================

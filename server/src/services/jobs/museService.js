@@ -26,10 +26,6 @@ export const searchMuseJobs = async ({
           params: {
             page,
 
-            ...(query
-              ? { category: query }
-              : {}),
-
             ...(location
               ? { location }
               : {}),
@@ -82,47 +78,19 @@ export const searchMuseJobs = async ({
 };
 
 // NOTE:
-// The Muse's public API does not support a generic
+// The Muse's public API does NOT support a generic
 // free-text "what" search parameter like Adzuna does.
-// It only supports filtering by category, level,
-// location, and company.
+// It also does NOT accept arbitrary keywords through the
+// "category" param — that param only accepts a small fixed
+// list of predefined categories (e.g. "Software Engineering",
+// "Data Science"). Sending free text like "MERN Developer"
+// or "React" there returns irrelevant/empty results, which
+// is why Muse jobs were missing before.
 //
-// Because of this, Muse results are NOT reliably
-// filtered by keyword at the API level — the real
-// keyword filtering happens in jobDiscoveryService.js
-// via filterRelevantJobs(), which is applied to the
-// COMBINED (Adzuna + Muse) results after normalization.
-//
-// If Muse keeps returning too many irrelevant jobs,
-// consider dropping it from discoverJobs() for
-// keyword searches and only using it for recommendation
-// broadening, since Adzuna is the source that actually
-// respects the "query" (what) parameter.
-
-// const filterMuseJobs = (jobs, query) => {
-//   if (!query?.trim()) {
-//     return jobs;
-//   }
-
-//   const keywords = query
-//     .toLowerCase()
-//     .split(/\s+/)
-//     .filter(Boolean);
-
-//   return jobs.filter((job) => {
-//     const searchableText = [
-//       job.name,
-//       job.contents,
-//       ...(job.categories || []).map(
-//         (category) =>
-//           category?.name || ""
-//       ),
-//     ]
-//       .join(" ")
-//       .toLowerCase();
-
-//     return keywords.some((keyword) =>
-//       searchableText.includes(keyword)
-//     );
-//   });
-// };
+// Fix: we no longer send "category" at all. We only pass
+// "location" (when provided) and let the COMBINED
+// (Adzuna + Muse + Jooble) results go through
+// filterRelevantJobs() in jobDiscoveryService.js, which
+// already matches the query against title/description/
+// company/location text. This lets Muse contribute broader
+// listings that still get correctly filtered by relevance.

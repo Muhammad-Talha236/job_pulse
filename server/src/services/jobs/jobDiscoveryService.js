@@ -4,6 +4,7 @@ import { searchMuseJobs } from "./museService.js";
 import { normalizeMuseJob } from "./museNormalizer.js";
 import { searchJoobleJobs } from "./joobleService.js";
 import { normalizeJoobleJob } from "./jobNormalizer.js";
+import { searchExternalJobs } from "../../repositories/externalJobsRepository.js";
 
 // =========================================================
 // FILTER RELEVANT JOBS
@@ -88,132 +89,197 @@ const scoreJobRelevance = (job, query) => {
 };
 
 // =========================================================
+// CONVERT A DB ROW (external_jobs) INTO THE STANDARD SHAPE
+// =========================================================
+//
+// The scraped-jobs table stores columns in snake_case
+// (Postgres convention). The rest of the app (Adzuna/Muse/
+// Jooble normalizers) uses camelCase. We convert here so
+// downstream code (filtering, scoring, JobCard rendering)
+// doesn't need to know the difference between a live API
+// result and a cached scraped row.
+const mapExternalJobRow = (row) => ({
+  externalId: row.external_id,
+  source: row.source,
+  title: row.title,
+  company: row.company,
+  location: row.location,
+  description: row.description || "",
+  url: row.url,
+  category: row.category,
+  contractType: row.contract_type,
+  salaryMin: row.salary_min,
+  salaryMax: row.salary_max,
+  salaryPredicted: false,
+  postedAt: row.posted_at,
+  adref: null,
+});
+
+// =========================================================
+// HOW MANY EXTERNAL PAGES TO PULL PER LIVE SOURCE
+// =========================================================
+const ADZUNA_PAGES = [1, 2, 3];
+const MUSE_PAGES = [0, 1, 2];
+const JOOBLE_PAGES = [1, 2, 3];
+
+const fetchAllPages = async (fetchPageFn, pages) => {
+  const results = await Promise.allSettled(
+    pages.map((page) => fetchPageFn(page))
+  );
+
+  return results
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => result.value);
+};
+
+// =========================================================
 // DISCOVER JOBS
 // =========================================================
+//
+// Combines:
+//  1. Live results from Adzuna, The Muse, Jooble
+//  2. Cached Rozee.pk results from our own database
+//     (populated by the scheduled scraper — see
+//     src/jobs/rozeeScrapeJob.js)
+//
+// Returns the FULL relevant list in one response; the
+// frontend paginates locally.
 export const discoverJobs = async ({
   query,
   location,
-  page = 1,
 }) => {
-  const currentPage = Math.max(
-    1,
-    Number(page) || 1
-  );
-
-  const [adzunaResult, museResult, joobleResult] =
-    await Promise.allSettled([
-      // =====================================================
-      // ADZUNA
-      // =====================================================
-      searchAdzunaJobs({
-        query,
-        location,
-        page: currentPage,
-      }),
-      // =====================================================
-      // THE MUSE
-      // =====================================================
-      searchMuseJobs({
-        query,
-        location,
-        page: currentPage - 1,
-      }),
-      // =====================================================
-      // JOOBLE
-      // =====================================================
-      searchJoobleJobs({
-        query,
-        location,
-        page: currentPage,
-      }),
-    ]);
+  const [
+    adzunaPageResults,
+    musePageResults,
+    joobPageResults,
+    rozeeRows,
+  ] = await Promise.all([
+    fetchAllPages(
+      (page) =>
+        searchAdzunaJobs({
+          query,
+          location,
+          page,
+        }),
+      ADZUNA_PAGES
+    ),
+    fetchAllPages(
+      (page) =>
+        searchMuseJobs({
+          query,
+          location,
+          page,
+        }),
+      MUSE_PAGES
+    ),
+    fetchAllPages(
+      (page) =>
+        searchJoobleJobs({
+          query,
+          location,
+          page,
+        }),
+      JOOBLE_PAGES
+    ),
+    searchExternalJobs({
+      query,
+      location,
+      source: "rozee",
+    }).catch((error) => {
+      console.error(
+        "Rozee cache lookup failed:",
+        error.message
+      );
+      return [];
+    }),
+  ]);
 
   const sources = [];
 
   // =========================================================
-  // PROCESS ADZUNA RESULT
+  // PROCESS ADZUNA RESULTS
   // =========================================================
-  if (adzunaResult.status === "fulfilled") {
-    try {
-      const adzunaData = adzunaResult.value;
-      const jobs = (
-        adzunaData?.results || []
-      ).map(normalizeAdzunaJob);
-      sources.push({
-        source: "adzuna",
-        jobs,
-        count: jobs.length,
-        total: adzunaData?.count || 0,
-      });
-    } catch (error) {
-      console.error(
-        "Adzuna normalization failed:",
-        error.message
-      );
-    }
-  } else {
+  try {
+    const jobs = adzunaPageResults.flatMap(
+      (pageData) =>
+        (pageData?.results || []).map(
+          normalizeAdzunaJob
+        )
+    );
+
+    sources.push({
+      source: "adzuna",
+      jobs,
+      count: jobs.length,
+    });
+  } catch (error) {
     console.error(
-      "Adzuna source failed:",
-      adzunaResult.reason?.message ||
-        adzunaResult.reason
+      "Adzuna normalization failed:",
+      error.message
     );
   }
 
   // =========================================================
-  // PROCESS THE MUSE RESULT
+  // PROCESS THE MUSE RESULTS
   // =========================================================
-  if (museResult.status === "fulfilled") {
-    try {
-      const museData = museResult.value;
-      const jobs = (
-        museData?.results || []
-      ).map(normalizeMuseJob);
-      sources.push({
-        source: "muse",
-        jobs,
-        count: jobs.length,
-        total: museData?.total || 0,
-      });
-    } catch (error) {
-      console.error(
-        "Muse normalization failed:",
-        error.message
-      );
-    }
-  } else {
+  try {
+    const jobs = musePageResults.flatMap(
+      (pageData) =>
+        (pageData?.results || []).map(
+          normalizeMuseJob
+        )
+    );
+
+    sources.push({
+      source: "muse",
+      jobs,
+      count: jobs.length,
+    });
+  } catch (error) {
     console.error(
-      "Muse source failed:",
-      museResult.reason?.message ||
-        museResult.reason
+      "Muse normalization failed:",
+      error.message
     );
   }
 
   // =========================================================
-  // PROCESS JOOBLE RESULT
+  // PROCESS JOOBLE RESULTS
   // =========================================================
-  if (joobleResult.status === "fulfilled") {
-    try {
-      const joobleData = joobleResult.value;
-      const jobs = (
-        joobleData?.jobs || []
-      ).map(normalizeJoobleJob);
-      sources.push({
-        source: "jooble",
-        jobs,
-        count: jobs.length,
-        total: joobleData?.totalCount || 0,
-      });
-    } catch (error) {
-      console.error(
-        "Jooble normalization failed:",
-        error.message
-      );
-    }
-  } else {
+  try {
+    const jobs = joobPageResults.flatMap(
+      (pageData) =>
+        (pageData?.jobs || []).map(
+          normalizeJoobleJob
+        )
+    );
+
+    sources.push({
+      source: "jooble",
+      jobs,
+      count: jobs.length,
+    });
+  } catch (error) {
     console.error(
-      "Jooble source failed:",
-      joobleResult.reason?.message ||
-        joobleResult.reason
+      "Jooble normalization failed:",
+      error.message
+    );
+  }
+
+  // =========================================================
+  // PROCESS ROZEE (CACHED) RESULTS
+  // =========================================================
+  try {
+    const jobs = rozeeRows.map(mapExternalJobRow);
+
+    sources.push({
+      source: "rozee",
+      jobs,
+      count: jobs.length,
+    });
+  } catch (error) {
+    console.error(
+      "Rozee row mapping failed:",
+      error.message
     );
   }
 
@@ -225,7 +291,7 @@ export const discoverJobs = async ({
   );
 
   // =========================================================
-  // DEDUPLICATE (Updated to prevent source overwriting)
+  // DEDUPLICATE
   // =========================================================
   const uniqueJobs = Array.from(
     new Map(
@@ -239,6 +305,10 @@ export const discoverJobs = async ({
   // =========================================================
   // FILTER RELEVANT JOBS
   // =========================================================
+  //
+  // Rozee rows already came pre-filtered by Postgres
+  // full-text search, but we run them through the same
+  // filter here too for consistency with the other sources.
   const relevantJobs = filterRelevantJobs(
     uniqueJobs,
     query
@@ -262,16 +332,6 @@ export const discoverJobs = async ({
     sources: sources.map((source) => ({
       name: source.source,
       count: source.jobs.length,
-      total: source.total,
     })),
-    page: currentPage,
-    hasNextPage: sources.some(
-      (source) =>
-        source.total >
-          currentPage * 20 ||
-        source.jobs.length === 20
-    ),
-    hasPreviousPage:
-      currentPage > 1,
   };
 };

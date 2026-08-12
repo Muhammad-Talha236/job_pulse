@@ -15,12 +15,16 @@ const getAuthHeaders = () => {
  * =========================================================
  * SEARCH JOBS
  * =========================================================
+ *
+ * Returns the FULL relevant job list for the query.
+ * There is no "page" parameter anymore — pagination
+ * (10 jobs per page) is handled entirely on the frontend
+ * from this single result set.
  */
 
 export const searchJobs = async (
   query,
-  location = "",
-  page = 1
+  location = ""
 ) => {
   const response = await axios.get(
     `${API_URL}/job-discovery/search`,
@@ -28,7 +32,6 @@ export const searchJobs = async (
       params: {
         query,
         ...(location && { location }),
-        page,
       },
 
       headers: getAuthHeaders(),

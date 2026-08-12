@@ -17,13 +17,17 @@ import {
 // SEARCH JOBS
 // =========================================================
 // GET /api/job-discovery/search
+//
+// Returns the FULL relevant job list for the query in one
+// response. Pagination (10 jobs per page) is handled on
+// the frontend — this endpoint no longer accepts or uses
+// a "page" parameter.
 
 export const searchJobs = async (req, res) => {
   try {
     const {
       query,
       location,
-      page = 1,
     } = req.query;
 
     const cleanQuery =
@@ -63,7 +67,6 @@ export const searchJobs = async (req, res) => {
       await discoverJobs({
         query: cleanQuery,
         location: cleanLocation,
-        page: Number(page),
       });
 
     // -----------------------------------------------------
