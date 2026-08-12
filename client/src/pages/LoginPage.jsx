@@ -11,52 +11,36 @@ import LoginForm from "../components/auth/LoginForm";
 function LoginPage() {
   const navigate = useNavigate();
 
-  /*
-   * Get the login function from AuthContext.
-   *
-   * AuthContext is now responsible for:
-   * - storing the token
-   * - storing the user
-   * - updating React authentication state
-   */
   const { login } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
 
-  /*
-   * ---------------------------------------------------------
-   * Login Submit Handler
-   * ---------------------------------------------------------
-   */
- const onSubmit = async (data) => {
-  try {
-    setLoading(true);
-    setServerError("");
+  const onSubmit = async (data) => {
+    try {
+      setLoading(true);
+      setServerError("");
 
-    const response = await login(data);
+      const response = await login(data);
 
-    console.log("Login successful:", response);
+      console.log("Login successful:", response);
 
-    // Navigate to dashboard here
-    navigate("/dashboard");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login failed:", error);
 
-  } catch (error) {
-    console.error("Login failed:", error);
+      const message =
+        error.response?.data?.message ||
+        "Unable to sign in";
 
-    const message =
-      error.response?.data?.message ||
-      "Unable to sign in";
-
-    setServerError(message);
-
-  } finally {
-    setLoading(false);
-  }
-};
+      setServerError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="flex min-h-sc=reen items-center justify-center bg-slate-50 p-4 sm:p-6">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-6">
 
       <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl lg:grid-cols-2">
 

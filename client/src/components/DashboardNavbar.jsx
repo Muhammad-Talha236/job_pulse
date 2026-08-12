@@ -17,34 +17,18 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import { useAuth } from "../context/AuthContext";
+
 function DashboardNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { user, logout } = useAuth();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const profileRef = useRef(null);
-
-  /*
-   * Try to read user information from localStorage.
-   * If your backend stores the user differently, we can connect
-   * this later with the actual auth/user context.
-   */
-  const getUser = () => {
-    try {
-      const storedUser =
-        localStorage.getItem("user");
-
-      return storedUser
-        ? JSON.parse(storedUser)
-        : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const user = getUser();
 
   const userName =
     user?.name ||
@@ -96,8 +80,7 @@ function DashboardNavbar() {
    * Logout
    */
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    logout();
 
     setProfileOpen(false);
     setMobileOpen(false);

@@ -35,6 +35,7 @@ function AppRoutes() {
           ===================================================== */}
 
       <Route element={<ProtectedRoute />}>
+    
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
 

@@ -1,24 +1,35 @@
 // src/pages/RegisterPage.jsx
 
 import { ArrowLeft, Zap } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { registerUser } from "../api/authApi";
 import RegisterForm from "../components/auth/RegisterForm";
 
 function RegisterPage() {
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const onSubmit = async (data) => {
     try {
       setLoading(true);
       setServerError("");
+      setSuccess("");
 
       const response = await registerUser(data);
 
       console.log("Registration successful:", response);
 
+      setSuccess(
+        "Account created successfully. Redirecting to login..."
+      );
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (error) {
       console.error("Registration failed:", error);
 
@@ -118,6 +129,16 @@ function RegisterPage() {
                 Start building your smarter job search workspace.
               </p>
             </div>
+
+            {/* Success message */}
+            {success && (
+              <div
+                role="status"
+                className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
+              >
+                {success}
+              </div>
+            )}
 
             {/* Form */}
             <div className="mt-8">

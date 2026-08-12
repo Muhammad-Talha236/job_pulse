@@ -14,7 +14,6 @@ import {
 
 import axiosClient from "../api/axiosClient";
 
-
 /*
  * =========================================================
  * Auth Context
@@ -23,7 +22,6 @@ import axiosClient from "../api/axiosClient";
 
 const AuthContext = createContext(null);
 
-
 /*
  * =========================================================
  * Auth Provider
@@ -31,117 +29,50 @@ const AuthContext = createContext(null);
  */
 
 export function AuthProvider({ children }) {
-
-  /*
-   * -------------------------------------------------------
-   * User State
-   * -------------------------------------------------------
-   *
-   * Stores the currently authenticated user.
-   */
-
   const [user, setUser] = useState(null);
-
-
-  /*
-   * -------------------------------------------------------
-   * Loading State
-   * -------------------------------------------------------
-   *
-   * Important during application startup.
-   *
-   * While this is true, we are checking whether the user
-   * already has a valid session.
-   */
-
   const [loading, setLoading] = useState(true);
-
 
   /*
    * -------------------------------------------------------
    * Restore Authentication
    * -------------------------------------------------------
-   *
-   * Runs once when AuthProvider is mounted.
    */
 
   useEffect(() => {
-
     const restoreSession = async () => {
-
       try {
-
-        /*
-         * Check whether a JWT exists.
-         */
-
         const token = localStorage.getItem("token");
-
-
-        /*
-         * No token means there is no session to restore.
-         */
 
         if (!token) {
           setUser(null);
           return;
         }
 
-
-        /*
-         * Ask the backend who this token belongs to.
-         *
-         * axiosClient automatically adds:
-         *
-         * Authorization: Bearer <token>
-         */
-
-        const response = await axiosClient.get(
-          "/auth/me"
-        );
-
-
-        /*
-         * Backend returns:
-         *
-         * {
-         *   user: {...}
-         * }
-         */
+        const response = await axiosClient.get("/auth/me");
 
         setUser(response.data.user);
 
+        localStorage.setItem(
+          "user",
+          JSON.stringify(response.data.user)
+        );
       } catch (error) {
-
-        /*
-         * If the token is invalid or expired,
-         * remove it from localStorage.
-         */
-
         console.error(
           "Session restoration failed:",
           error
         );
 
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
 
         setUser(null);
-
       } finally {
-
-        /*
-         * Authentication check is finished.
-         */
-
         setLoading(false);
       }
     };
 
-
     restoreSession();
-
   }, []);
-
 
   /*
    * -------------------------------------------------------
@@ -150,35 +81,20 @@ export function AuthProvider({ children }) {
    */
 
   const login = async (credentials) => {
-
     const response = await loginUser(credentials);
-
-
-    /*
-     * Store JWT.
-     *
-     * Adjust this if your backend returns the token
-     * using a different property name.
-     */
 
     const token = response.token;
 
+    localStorage.setItem("token", token);
     localStorage.setItem(
-      "token",
-      token
+      "user",
+      JSON.stringify(response.user)
     );
-
-
-    /*
-     * Store user information.
-     */
 
     setUser(response.user);
 
-
     return response;
   };
-
 
   /*
    * -------------------------------------------------------
@@ -187,12 +103,10 @@ export function AuthProvider({ children }) {
    */
 
   const register = async (userData) => {
-
     const response = await registerUser(userData);
 
     return response;
   };
-
 
   /*
    * -------------------------------------------------------
@@ -201,36 +115,13 @@ export function AuthProvider({ children }) {
    */
 
   const logout = () => {
-
-    /*
-     * Remove JWT.
-     */
-
     localStorage.removeItem("token");
-
-
-    /*
-     * Remove user from React state.
-     */
+    localStorage.removeItem("user");
 
     setUser(null);
   };
 
-
-  /*
-   * -------------------------------------------------------
-   * Authentication Status
-   * -------------------------------------------------------
-   */
-
   const isAuthenticated = Boolean(user);
-
-
-  /*
-   * -------------------------------------------------------
-   * Context Value
-   * -------------------------------------------------------
-   */
 
   const value = {
     user,
@@ -241,7 +132,6 @@ export function AuthProvider({ children }) {
     logout,
   };
 
-
   return (
     <AuthContext.Provider value={value}>
       {children}
@@ -249,28 +139,20 @@ export function AuthProvider({ children }) {
   );
 }
 
-
 /*
  * =========================================================
  * useAuth Hook
  * =========================================================
- *
- * Components can use:
- *
- * const { user, login, logout } = useAuth();
  */
 
 export function useAuth() {
-
   const context = useContext(AuthContext);
-
 
   if (!context) {
     throw new Error(
       "useAuth must be used inside AuthProvider"
     );
   }
-
 
   return context;
 }

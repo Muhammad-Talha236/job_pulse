@@ -47,10 +47,14 @@ const calculateMatchScore = (job, profile) => {
     ${title}
     ${company}
     ${description}
-  `;
+  `.toLowerCase();
 
   const skills = normalizeArray(profile.skills);
-  const roles = normalizeArray(profile.preferred_roles);
+
+  const roles = normalizeArray(
+    profile.preferred_roles
+  );
+
   const technologies = normalizeArray(
     profile.preferred_technologies
   );
@@ -116,18 +120,27 @@ const calculateMatchScore = (job, profile) => {
   // =======================================================
 
   if (technologies.length > 0) {
-    const technologyMatches = technologies.filter(
-      (technology) =>
-        containsTerm(searchableText, technology)
-    );
+    const technologyMatches =
+      technologies.filter((technology) =>
+        containsTerm(
+          searchableText,
+          technology
+        )
+      );
 
-    technologyMatches.forEach((technology) => {
-      matchedTechnologies.push(technology);
-    });
+    technologyMatches.forEach(
+      (technology) => {
+        matchedTechnologies.push(
+          technology
+        );
+      }
+    );
 
     score += Math.min(
       15,
-      (technologyMatches.length / technologies.length) * 15
+      (technologyMatches.length /
+        technologies.length) *
+        15
     );
   }
 
@@ -138,7 +151,10 @@ const calculateMatchScore = (job, profile) => {
   if (
     preferredLocation &&
     location &&
-    containsTerm(location, preferredLocation)
+    containsTerm(
+      location,
+      preferredLocation
+    )
   ) {
     score += 10;
   }
@@ -150,7 +166,10 @@ const calculateMatchScore = (job, profile) => {
   if (
     preferredJobType &&
     jobType &&
-    containsTerm(jobType, preferredJobType)
+    containsTerm(
+      jobType,
+      preferredJobType
+    )
   ) {
     score += 5;
   }
@@ -161,138 +180,230 @@ const calculateMatchScore = (job, profile) => {
 
   if (
     preferredWorkMode &&
-    containsTerm(searchableText, preferredWorkMode)
+    containsTerm(
+      searchableText,
+      preferredWorkMode
+    )
   ) {
     score += 5;
   }
 
   return {
-    score: Math.min(100, Math.round(score)),
+    score: Math.min(
+      100,
+      Math.round(score)
+    ),
+
     matchedSkills,
+
     matchedRoles,
+
     matchedTechnologies,
   };
 };
 
 // =========================================================
-// GET PROFILE QUERIES
+// BUILD PROFILE QUERIES
 // =========================================================
 
-const buildRecommendationQueries = (profile) => {
-  const skills = normalizeArray(profile.skills);
-  const roles = normalizeArray(profile.preferred_roles);
+const buildRecommendationQueries = (
+  profile
+) => {
+  const skills = normalizeArray(
+    profile.skills
+  );
+
+  const roles = normalizeArray(
+    profile.preferred_roles
+  );
+
   const technologies = normalizeArray(
     profile.preferred_technologies
   );
 
   /*
-   * Roles and skills are stronger search queries.
+   * Priority:
    *
-   * Technologies are used mainly for matching because
-   * searching every technology separately can create
-   * too many duplicate jobs.
+   * 1. Preferred roles
+   * 2. Skills
+   * 3. Technologies
+   *
+   * We remove duplicates so that the same
+   * search is never sent twice.
    */
 
   const queries = [
     ...roles,
     ...skills,
+    ...technologies,
   ];
 
-  return [...new Set(queries)].slice(0, 5);
+  return [...new Set(queries)]
+    .filter(Boolean)
+    .slice(0, 8);
 };
 
 // =========================================================
 // GET RECOMMENDED JOBS
 // =========================================================
 
-export const getRecommendedJobs = async (profile) => {
-  const queries = buildRecommendationQueries(profile);
+export const getRecommendedJobs = async (
+  profile
+) => {
+  const queries =
+    buildRecommendationQueries(
+      profile
+    );
+
+  // =======================================================
+  // NO PROFILE SEARCH DATA
+  // =======================================================
 
   if (queries.length === 0) {
     return {
       jobs: [],
+
+      total: 0,
+
+      queries: [],
+
       message:
         "Add skills or preferred roles to your profile to get recommendations.",
     };
   }
 
-  const location = profile.preferred_location || "";
+  const location =
+    profile.preferred_location || "";
 
-  const results = await Promise.allSettled(
-    queries.map((query) =>
-      discoverJobs({
-        query,
-        location,
-        page: 1,
-      })
-    )
-  );
+  // =======================================================
+  // SEARCH ALL PROFILE QUERIES IN PARALLEL
+  // =======================================================
+
+  /*
+   * Example:
+   *
+   * React
+   * React Developer
+   * JavaScript
+   * Node.js
+   *
+   * All searches start together.
+   *
+   * Each discoverJobs() call also searches:
+   *
+   *        Adzuna + Muse
+   *             ↓
+   *         in parallel
+   *
+   * So the complete recommendation flow is
+   * heavily parallelized.
+   */
+
+  const results =
+    await Promise.allSettled(
+      queries.map((query) =>
+        discoverJobs({
+          query,
+
+          location,
+
+          page: 1,
+        })
+      )
+    );
 
   // =======================================================
   // COMBINE DISCOVERED JOBS
   // =======================================================
 
-  const allJobs = results.flatMap((result) => {
-    if (result.status !== "fulfilled") {
-      return [];
-    }
+  const allJobs =
+    results.flatMap((result) => {
+      if (
+        result.status !==
+        "fulfilled"
+      ) {
+        return [];
+      }
 
-    return result.value.jobs || [];
-  });
+      return result.value?.jobs || [];
+    });
 
   // =======================================================
   // DEDUPLICATE
   // =======================================================
 
-  const uniqueJobs = Array.from(
-    new Map(
-      allJobs.map((job) => [
-        `${job.source}-${job.externalId}`,
-        job,
-      ])
-    ).values()
-  );
+  const uniqueJobs =
+    Array.from(
+      new Map(
+        allJobs.map((job) => [
+          `${job.source}-${job.externalId}`,
+          job,
+        ])
+      ).values()
+    );
 
   // =======================================================
   // SCORE JOBS
   // =======================================================
 
-  const scoredJobs = uniqueJobs.map((job) => {
-    const match = calculateMatchScore(
-      job,
-      profile
-    );
+  const scoredJobs =
+    uniqueJobs.map((job) => {
+      const match =
+        calculateMatchScore(
+          job,
+          profile
+        );
 
-    return {
-      ...job,
+      return {
+        ...job,
 
-      matchScore: match.score,
+        matchScore:
+          match.score,
 
-      matchedSkills: match.matchedSkills,
+        matchedSkills:
+          match.matchedSkills,
 
-      matchedRoles: match.matchedRoles,
+        matchedRoles:
+          match.matchedRoles,
 
-      matchedTechnologies:
-        match.matchedTechnologies,
+        matchedTechnologies:
+          match.matchedTechnologies,
 
-      isRecommended: true,
-    };
-  });
+        isRecommended: true,
+      };
+    });
 
   // =======================================================
-  // SORT
+  // SORT BY MATCH SCORE
   // =======================================================
 
   scoredJobs.sort(
-    (a, b) => b.matchScore - a.matchScore
+    (a, b) =>
+      b.matchScore -
+      a.matchScore
   );
 
   // =======================================================
-  // TOP 10
+  // RETURN RECOMMENDATION POOL
   // =======================================================
 
+  /*
+   * Previously only 10 jobs were returned.
+   *
+   * That makes the frontend look like there
+   * are only a few jobs available.
+   *
+   * We keep a larger pool here.
+   *
+   * JobsPage can display them progressively
+   * and pagination can work on this pool.
+   */
+
+  const recommendationJobs =
+    scoredJobs.slice(0, 30);
+
   return {
-    jobs: scoredJobs.slice(0, 10),
+    jobs: recommendationJobs,
 
     total: scoredJobs.length,
 

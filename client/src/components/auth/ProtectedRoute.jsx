@@ -2,45 +2,42 @@
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
+import { useAuth } from "../../context/AuthContext";
+
 /*
  * ProtectedRoute
  *
- * This component checks whether the user has
- * an authentication token.
- *
- * If a token exists:
- *     Allow the user to continue.
- *
- * If a token does not exist:
- *     Redirect the user to /login.
+ * Uses AuthContext as the single source of truth
+ * for authentication status.
  */
 function ProtectedRoute() {
   const location = useLocation();
-
-  const token = localStorage.getItem("token");
+  const { isAuthenticated, loading } = useAuth();
 
   /*
-   * No token means the user is not authenticated.
+   * Still checking session on first load.
    */
-  if (!token) {
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <p className="text-sm font-medium text-slate-500">
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
     return (
       <Navigate
         to="/login"
         replace
-        state={{
-          from: location,
-        }}
+        state={{ from: location }}
       />
     );
   }
 
-  /*
-   * Token exists.
-   *
-   * Outlet renders whichever protected
-   * child route the user requested.
-   */
-  return <Outlet />;    
+  return <Outlet />;
 }
 
 export default ProtectedRoute;
