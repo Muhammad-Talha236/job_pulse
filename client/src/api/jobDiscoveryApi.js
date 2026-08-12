@@ -66,3 +66,37 @@ export const getRecommendedJobs = async () => {
 
   return response.data;
 };
+
+/*
+ * =========================================================
+ * GET JOB SUGGESTIONS (autocomplete)
+ * =========================================================
+ *
+ * Used by the search bar's skill/location suggestion
+ * dropdown (useJobSuggestions hook).
+ *
+ * type: "skill" | "location"
+ * query: the partial text the user has typed
+ *
+ * Backend route:
+ * GET /api/job-discovery/suggestions?type=skill&q=react
+ */
+
+export const getJobSuggestions = async (
+  type,
+  query
+) => {
+  const response = await axios.get(
+    `${API_URL}/job-discovery/suggestions`,
+    {
+      params: {
+        type,
+        q: query,
+      },
+
+      headers: getAuthHeaders(),
+    }
+  );
+
+  return response.data;
+};

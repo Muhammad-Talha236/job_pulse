@@ -41,9 +41,25 @@ function JobsPage() {
   // =========================================================
   // SEARCH STATE
   // =========================================================
+  //
+  // IMPORTANT:
+  // These always start empty. We never restore a previous
+  // query/location from storage, so the search bar is
+  // always blank on a fresh page load / login.
 
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+
+  // =========================================================
+  // HAS THE USER MANUALLY SEARCHED?
+  // =========================================================
+  //
+  // This flag is the key fix: once the user runs a manual
+  // keyword search, recommendation data (which can refresh
+  // in the background via JobContext) must NOT overwrite
+  // the jobs currently on screen.
+
+  const [hasSearched, setHasSearched] = useState(false);
 
   // =========================================================
   // JOB STATE
@@ -93,10 +109,11 @@ function JobsPage() {
   // =========================================================
   //
   // Recommendations are already being fetched by
-  // JobContext after login.
+  // JobContext right after login (based on the user's
+  // profile skills/roles/technologies).
   //
-  // JobsPage only consumes them.
-  // It does NOT call /recommended again.
+  // JobsPage only consumes them — it does NOT call
+  // /recommended again itself.
   // =========================================================
 
   const {
@@ -206,11 +223,12 @@ function JobsPage() {
   //
   // IMPORTANT:
   //
-  // No previous search is restored.
-  //
-  // Search inputs always start empty.
-  //
-  // Recommendations come from JobContext.
+  // - Search inputs always start empty.
+  // - Recommendations come from JobContext and are shown
+  //   automatically ONLY while the user hasn't manually
+  //   searched yet (hasSearched === false). This is what
+  //   stops a background recommendation refresh from
+  //   wiping out the user's manual search results.
   // =========================================================
 
   useEffect(() => {
@@ -287,21 +305,28 @@ function JobsPage() {
         // -----------------------------------------------------
         // USE PREFETCHED RECOMMENDATIONS
         // -----------------------------------------------------
+        //
+        // Only populate the job list from recommendations
+        // if the user hasn't run a manual search. Otherwise
+        // we'd stomp on their current search results every
+        // time recommendedJobs changes reference.
 
-        const normalizedRecommendations =
-          (
-            recommendedJobs || []
-          ).map(normalizeJob);
+        if (!hasSearched) {
+          const normalizedRecommendations =
+            (
+              recommendedJobs || []
+            ).map(normalizeJob);
 
-        setJobs(
-          normalizedRecommendations
-        );
+          setJobs(
+            normalizedRecommendations
+          );
 
-        setPage(1);
+          setPage(1);
 
-        setHasNextPage(false);
+          setHasNextPage(false);
 
-        setHasPreviousPage(false);
+          setHasPreviousPage(false);
+        }
       } catch (requestError) {
         console.error(
           "Failed to initialize jobs page:",
@@ -329,7 +354,7 @@ function JobsPage() {
     return () => {
       active = false;
     };
-  }, [recommendedJobs]);
+  }, [recommendedJobs, hasSearched]);
 
   // =========================================================
   // HANDLE RECOMMENDATION LOADING
@@ -409,6 +434,11 @@ function JobsPage() {
      * Search should reset when page is refreshed.
      */
 
+    // Mark that the user has manually searched so the
+    // background recommendation refresh effect stops
+    // overwriting these results.
+    setHasSearched(true);
+
     await fetchManualJobs(
       trimmedQuery,
       trimmedLocation,
@@ -433,6 +463,9 @@ function JobsPage() {
       setHasNextPage(false);
 
       setHasPreviousPage(false);
+
+      // Allow recommendations to populate the job list again.
+      setHasSearched(false);
 
       /*
        * Refresh only when explicitly requested.

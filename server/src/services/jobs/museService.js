@@ -26,6 +26,10 @@ export const searchMuseJobs = async ({
           params: {
             page,
 
+            ...(query
+              ? { category: query }
+              : {}),
+
             ...(location
               ? { location }
               : {}),
@@ -76,6 +80,24 @@ export const searchMuseJobs = async ({
     }
   }
 };
+
+// NOTE:
+// The Muse's public API does not support a generic
+// free-text "what" search parameter like Adzuna does.
+// It only supports filtering by category, level,
+// location, and company.
+//
+// Because of this, Muse results are NOT reliably
+// filtered by keyword at the API level — the real
+// keyword filtering happens in jobDiscoveryService.js
+// via filterRelevantJobs(), which is applied to the
+// COMBINED (Adzuna + Muse) results after normalization.
+//
+// If Muse keeps returning too many irrelevant jobs,
+// consider dropping it from discoverJobs() for
+// keyword searches and only using it for recommendation
+// broadening, since Adzuna is the source that actually
+// respects the "query" (what) parameter.
 
 // const filterMuseJobs = (jobs, query) => {
 //   if (!query?.trim()) {

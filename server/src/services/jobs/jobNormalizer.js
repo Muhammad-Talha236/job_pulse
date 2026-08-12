@@ -44,3 +44,23 @@ export function normalizeAdzunaJob(job) {
     adref: job.adref || null,
   };
 }
+
+// Add inside backend/src/services/jobs/jobNormalizer.js or a new normalizer file
+export function normalizeJoobleJob(job) {
+  return {
+    externalId: String(job.id || Math.random()),
+    source: "jooble",
+    title: job.title || "Untitled Job",
+    company: job.company || "Unknown Company",
+    location: job.location || "Pakistan",
+    description: job.snippet || "",
+    url: job.link || "",
+    category: null,
+    contractType: job.type || "Full-time",
+    salaryMin: null,
+    salaryMax: null,
+    salaryPredicted: false,
+    postedAt: job.updated ? new Date(job.updated) : null,
+    adref: null,
+  };
+}
