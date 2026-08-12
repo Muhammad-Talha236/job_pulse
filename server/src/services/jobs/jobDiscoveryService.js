@@ -8,15 +8,6 @@ import { normalizeJoobleJob } from "./jobNormalizer.js";
 // =========================================================
 // FILTER RELEVANT JOBS
 // =========================================================
-// STRICTER VERSION:
-// - Exact phrase match  -> always relevant
-// - ALL query tokens matched -> always relevant
-// - Otherwise at least 75% of tokens must match
-//   (previously this was only 50%, which let a lot of
-//   loosely-related jobs through)
-// This is applied AFTER Adzuna + Muse + Jooble results are merged,
-// so it acts as the final relevance gate regardless of
-// how loose any source's own search was.
 const filterRelevantJobs = (jobs, query) => {
   const normalizedQuery = String(query || "")
     .trim()
@@ -62,7 +53,7 @@ const filterRelevantJobs = (jobs, query) => {
       return true;
     }
     // Multiple words:
-    // At least 75% should match (stricter than before).
+    // At least 75% should match.
     const minimumMatches = Math.ceil(
       tokens.length * 0.75
     );
@@ -73,9 +64,6 @@ const filterRelevantJobs = (jobs, query) => {
 // =========================================================
 // SCORE + SORT BY RELEVANCE
 // =========================================================
-// Beyond just filtering, we also rank the surviving jobs
-// so the most relevant ones (title match > description
-// match) show up first instead of in random source order.
 const scoreJobRelevance = (job, query) => {
   const normalizedQuery = String(query || "")
     .trim()
@@ -111,16 +99,7 @@ export const discoverJobs = async ({
     1,
     Number(page) || 1
   );
-  /*
-   * IMPORTANT
-   *
-   * Adzuna, The Muse, and Jooble are intentionally requested
-   * at the same time.
-   *
-   * Promise.allSettled() means:
-   *
-   * One source fails -> others still return their jobs successfully.
-   */
+
   const [adzunaResult, museResult, joobleResult] =
     await Promise.allSettled([
       // =====================================================
@@ -137,7 +116,6 @@ export const discoverJobs = async ({
       searchMuseJobs({
         query,
         location,
-        // Muse starts from page 0
         page: currentPage - 1,
       }),
       // =====================================================
@@ -247,12 +225,12 @@ export const discoverJobs = async ({
   );
 
   // =========================================================
-  // DEDUPLICATE
+  // DEDUPLICATE (Updated to prevent source overwriting)
   // =========================================================
   const uniqueJobs = Array.from(
     new Map(
       allJobs.map((job) => [
-        `${job.source}-${job.externalId}`,
+        `${job.source}-${job.externalId || (job.title + job.company).replace(/\s/g, '')}`,
         job,
       ])
     ).values()
