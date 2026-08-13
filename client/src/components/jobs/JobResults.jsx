@@ -262,47 +262,32 @@ export default function JobResults({
 
       {/* PAGINATION */}
 
-      {!isRecommendationMode && (
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={
-              onPreviousPage
-            }
-            disabled={
-              !hasPreviousPage ||
-              loading
-            }
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft
-              size={17}
-            />
-
-            Previous
-          </button>
-
-          <div className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-black text-white shadow-sm">
-            {page}
-          </div>
-
-          <button
-            type="button"
-            onClick={onNextPage}
-            disabled={
-              !hasNextPage ||
-              loading
-            }
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-
-            <ChevronRight
-              size={17}
-            />
-          </button>
-        </div>
-      )}
+    {/* PAGINATION (Works for both Search and Recommendations) */}
+       {jobs.length > 0 && (
+         <div className="mt-8 flex items-center justify-center gap-3">
+           <button
+             type="button"
+             onClick={onPreviousPage}
+             disabled={!hasPreviousPage || loading}
+             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+           >
+             <ChevronLeft size={17} />
+             Previous
+           </button>
+           <div className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-black text-white shadow-sm">
+             {page}
+           </div>
+           <button
+             type="button"
+             onClick={onNextPage}
+             disabled={!hasNextPage || loading}
+             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+           >
+             Next
+             <ChevronRight size={17} />
+           </button>
+         </div>
+       )}
     </>
   );
 }

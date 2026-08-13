@@ -6,24 +6,40 @@ import { searchJoobleJobs } from "./joobleService.js";
 import { normalizeJoobleJob } from "./jobNormalizer.js";
 import { searchExternalJobs } from "../../repositories/externalJobsRepository.js";
 
-// =========================================================
-// FILTER RELEVANT JOBS
-// =========================================================
+
+const NON_TECH_KEYWORDS = [
+  "nurse", "nursing", "cook", "doctor", "urologist", "cardiologist", 
+  "therapist", "pipefitter", "sonographer", "speech pathologist", 
+  "hospital", "clinical", "patient", "medical"
+];
+
 const filterRelevantJobs = (jobs, query) => {
-  const normalizedQuery = String(query || "")
-    .trim()
-    .toLowerCase();
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  
+  // 1. Agar query empty hai (Recommendation Mode)
   if (!normalizedQuery) {
-    return jobs;
+    const passed = jobs.filter((job) => {
+      const title = String(job?.title || "").toLowerCase();
+      const isNonTech = NON_TECH_KEYWORDS.some((keyword) => title.includes(keyword));
+      return !isNonTech;
+    });
+    console.log(`[DEBUG RECOMMENDATION FILTER] Total jobs before filter: ${jobs.length}, Passed: ${passed.length}, Dropped: ${jobs.length - passed.length}`);
+    return passed;
   }
+
+  // 2. Manual Search Mode
   const tokens = normalizedQuery
     .split(/\s+/)
     .map((token) => token.replace(/[^\w+#.-]/g, ""))
     .filter((token) => token.length >= 2);
-  if (tokens.length === 0) {
-    return [];
-  }
-  return jobs.filter((job) => {
+
+  if (tokens.length === 0) return jobs;
+
+  const filtered = jobs.filter((job) => {
+    const title = String(job?.title || "").toLowerCase();
+    const isNonTech = NON_TECH_KEYWORDS.some((keyword) => title.includes(keyword));
+    if (isNonTech) return false;
+
     const searchableText = [
       job?.title,
       job?.company,
@@ -34,34 +50,24 @@ const filterRelevantJobs = (jobs, query) => {
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-    if (!searchableText) {
-      return false;
-    }
-    // Exact phrase match
-    if (searchableText.includes(normalizedQuery)) {
-      return true;
-    }
-    const matchedTokens = tokens.filter((token) =>
-      searchableText.includes(token)
-    ).length;
-    // Single word:
-    // It MUST actually exist in the job.
-    if (tokens.length === 1) {
-      return matchedTokens === 1;
-    }
-    // All tokens matched -> definitely relevant
-    if (matchedTokens === tokens.length) {
-      return true;
-    }
-    // Multiple words:
-    // At least 75% should match.
-    const minimumMatches = Math.ceil(
-      tokens.length * 0.75
-    );
+
+    if (!searchableText) return false;
+
+    if (searchableText.includes(normalizedQuery)) return true;
+
+    const matchedTokens = tokens.filter((token) => searchableText.includes(token)).length;
+    
+    if (tokens.length === 1) return matchedTokens === 1;
+    if (matchedTokens === tokens.length) return true;
+
+    const minimumMatches = Math.max(1, Math.floor(tokens.length * 0.3));
     return matchedTokens >= minimumMatches;
   });
-};
 
+  console.log(`[DEBUG SEARCH FILTER] Query: "${query}" | Total before: ${jobs.length} | Passed after filter: ${filtered.length} | Dropped: ${jobs.length - filtered.length}`);
+  return filtered;
+};
+;
 // =========================================================
 // SCORE + SORT BY RELEVANCE
 // =========================================================
@@ -206,7 +212,7 @@ export const discoverJobs = async ({
           normalizeAdzunaJob
         )
     );
-
+console.log(`[RAW STATS] Adzuna fetched: ${jobs.length} jobs`); // <-- Yeh log add karein
     sources.push({
       source: "adzuna",
       jobs,
@@ -229,7 +235,7 @@ export const discoverJobs = async ({
           normalizeMuseJob
         )
     );
-
+   console.log(`[RAW STATS] Muse fetched: ${jobs.length} jobs`); // <-- Yeh log add karein
     sources.push({
       source: "muse",
       jobs,
@@ -252,7 +258,7 @@ export const discoverJobs = async ({
           normalizeJoobleJob
         )
     );
-
+  console.log(`[RAW STATS] Jooble fetched: ${jobs.length} jobs`); // <-- Yeh log add karein
     sources.push({
       source: "jooble",
       jobs,
@@ -323,6 +329,8 @@ export const discoverJobs = async ({
       scoreJobRelevance(a, query)
   );
 
+
+  console.log(`[DEBUG FINAL] Total sorted & ready jobs sent to frontend: ${sortedJobs.length}`);
   // =========================================================
   // RESPONSE
   // =========================================================

@@ -715,10 +715,15 @@ function JobsPage() {
       return;
     }
 
-    const maxPage = Math.max(
-      1,
-      Math.ceil(searchResults.length / PAGE_SIZE)
-    );
+   const maxPages = Math.max(
+    1,
+    Math.ceil(
+      (hasSearched ? searchResults.length : (recommendedJobs?.length || 0)) / PAGE_SIZE
+    )
+  );
+
+  const hasNextPage = page < maxPages;
+  const hasPreviousPage = page > 1;
 
     if (
       requestedPage < 1 ||
@@ -730,6 +735,16 @@ function JobsPage() {
     setPage(requestedPage);
   };
 
+  useEffect(() => {
+    const currentList = hasSearched ? searchResults : (recommendedJobs || []);
+    const start = (page - 1) * PAGE_SIZE;
+    setJobs(
+      currentList.slice(
+        start,
+        start + PAGE_SIZE
+      )
+    );
+  }, [searchResults, recommendedJobs, page, hasSearched]);
   // =========================================================
   // INITIAL LOADING
   // =========================================================

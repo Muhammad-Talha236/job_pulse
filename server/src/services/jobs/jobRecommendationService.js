@@ -399,14 +399,13 @@ export const getRecommendedJobs = async (
    * and pagination can work on this pool.
    */
 
-  const recommendationJobs =
-    scoredJobs.slice(0, 30);
+ const recommendationJobs = scoredJobs.filter(
+    (job) => job.matchScore >= 20
+  ); // .slice(0, 30) yahan se hata diya gaya hai
 
   return {
     jobs: recommendationJobs,
-
-    total: scoredJobs.length,
-
+    total: recommendationJobs.length,
     queries,
   };
 };
