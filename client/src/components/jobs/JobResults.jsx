@@ -12,6 +12,7 @@ import JobCard from "./JobCard";
 
 export default function JobResults({
   jobs,
+  totalJobs,
   loading,
   error,
   isRecommendationMode,
@@ -207,7 +208,7 @@ export default function JobResults({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Showing {jobs.length} opportunities
+            Showing {jobs.length} of {totalJobs} opportunities
 
             {!isRecommendationMode &&
             query
@@ -224,11 +225,12 @@ export default function JobResults({
               Personalized for you
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm">
-              <Database size={14} />
-
-              Page {page}
-            </div>
+           <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm">
+            <Database size={14} />
+            Page {page}
+          </div>
+        </div>
           )}
         </div>
       </div>
@@ -290,4 +292,4 @@ export default function JobResults({
        )}
     </>
   );
-}
+} 

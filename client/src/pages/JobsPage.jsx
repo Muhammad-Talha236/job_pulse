@@ -88,7 +88,13 @@ function JobsPage() {
   const [jobs, setJobs] = useState([]);
 
   const [savedJobs, setSavedJobs] = useState([]);
-
+ const {
+    recommendedJobs,
+    recommendationLoading,
+    recommendationError,
+    recommendationsLoaded,
+    refreshRecommendations,
+  } = useJobs();
   // =========================================================
   // PROFILE STATE
   // =========================================================
@@ -130,13 +136,13 @@ function JobsPage() {
 
   const [page, setPage] = useState(1);
 
-  const hasNextPage =
-    hasSearched &&
-    page * PAGE_SIZE < searchResults.length;
+  const currentTotalJobs = hasSearched 
+    ? searchResults.length 
+    : (recommendedJobs?.length || 0);
 
-  const hasPreviousPage =
-    hasSearched && page > 1;
-
+    const maxPages = Math.max(1, Math.ceil(currentTotalJobs / PAGE_SIZE));
+ const hasNextPage = page < maxPages;
+  const hasPreviousPage = page > 1;
   // =========================================================
   // SAVE STATE
   // =========================================================
@@ -156,13 +162,7 @@ function JobsPage() {
   // /recommended again itself.
   // =========================================================
 
-  const {
-    recommendedJobs,
-    recommendationLoading,
-    recommendationError,
-    recommendationsLoaded,
-    refreshRecommendations,
-  } = useJobs();
+ 
 
   // =========================================================
   // RECOMMENDATION SKILLS
@@ -324,20 +324,20 @@ function JobsPage() {
   // page changes, slice out the 10 jobs for that page.
   // No backend call happens here.
 
-  useEffect(() => {
-    if (!hasSearched) {
-      return;
-    }
+ useEffect(() => {
+    const currentList = hasSearched 
+      ? searchResults 
+      : (recommendedJobs || []).map(normalizeJob);
 
     const start = (page - 1) * PAGE_SIZE;
-
+    
     setJobs(
-      searchResults.slice(
+      currentList.slice(
         start,
         start + PAGE_SIZE
       )
     );
-  }, [searchResults, page, hasSearched]);
+  }, [searchResults, recommendedJobs, page, hasSearched]);
 
   // =========================================================
   // INITIAL PAGE LOAD
@@ -434,14 +434,14 @@ function JobsPage() {
         // time recommendedJobs changes reference.
 
         if (!hasSearched) {
-          const normalizedRecommendations =
-            (
-              recommendedJobs || []
-            ).map(normalizeJob);
+          // const normalizedRecommendations =
+          //   (
+          //     recommendedJobs || []
+          //   ).map(normalizeJob);
 
-          setJobs(
-            normalizedRecommendations
-          );
+          // setJobs(
+          //   normalizedRecommendations
+          // );
 
           setPage(1);
         }
@@ -710,20 +710,15 @@ function JobsPage() {
   // to a different slice of the already-fetched
   // searchResults array.
 
-  const loadPage = (requestedPage) => {
-    if (!hasSearched) {
-      return;
-    }
+ const loadPage = (requestedPage) => {
+    const currentTotalJobs = hasSearched 
+      ? searchResults.length 
+      : (recommendedJobs?.length || 0);
 
-   const maxPages = Math.max(
-    1,
-    Math.ceil(
-      (hasSearched ? searchResults.length : (recommendedJobs?.length || 0)) / PAGE_SIZE
-    )
-  );
-
-  const hasNextPage = page < maxPages;
-  const hasPreviousPage = page > 1;
+    const maxPage = Math.max(
+      1,
+      Math.ceil(currentTotalJobs / PAGE_SIZE)
+    );
 
     if (
       requestedPage < 1 ||
@@ -734,7 +729,6 @@ function JobsPage() {
 
     setPage(requestedPage);
   };
-
   useEffect(() => {
     const currentList = hasSearched ? searchResults : (recommendedJobs || []);
     const start = (page - 1) * PAGE_SIZE;
@@ -981,6 +975,7 @@ function JobsPage() {
 
         <JobResults
           jobs={jobs}
+          totalJobs={hasSearched ? searchResults.length : (recommendedJobs?.length || 0)} // <-- Yeh prop add karein
           loading={
             loadingSearch ||
             recommendationLoading

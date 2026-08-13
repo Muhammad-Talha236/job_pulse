@@ -45,7 +45,7 @@ export function normalizeAdzunaJob(job) {
   };
 }
 
-// Add inside backend/src/services/jobs/jobNormalizer.js or a new normalizer file
+
 export function normalizeJoobleJob(job) {
   return {
     externalId: String(job.id || Math.random()),
@@ -53,7 +53,7 @@ export function normalizeJoobleJob(job) {
     title: job.title || "Untitled Job",
     company: job.company || "Unknown Company",
     location: job.location || "Pakistan",
-    description: job.snippet || "",
+    description: cleanJobDescription(job.snippet || ""), // <-- Yahan cleanJobDescription wrap kar dein
     url: job.link || "",
     category: null,
     contractType: job.type || "Full-time",

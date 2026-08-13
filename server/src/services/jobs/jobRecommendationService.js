@@ -33,6 +33,23 @@ const containsTerm = (text, term) => {
 };
 
 // =========================================================
+// CHECK IF JOB IS RECENT (Drop old jobs from 2024, 2025 etc.)
+// =========================================================
+
+const isRecentJob = (postedAt) => {
+  if (!postedAt) return true; // Agar date mention nahi hai toh safety ke liye rakh lein
+  const jobDate = new Date(postedAt);
+  if (Number.isNaN(jobDate.getTime())) return true;
+
+  const now = new Date();
+  const diffTime = Math.abs(now - jobDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Sirf pichle 45 din tak ki latest jobs allow karein (purani 2024/2025 wali drop ho jayengi)
+  return diffDays <= 45;
+};
+
+// =========================================================
 // CALCULATE JOB MATCH
 // =========================================================
 
@@ -279,26 +296,6 @@ export const getRecommendedJobs = async (
   // SEARCH ALL PROFILE QUERIES IN PARALLEL
   // =======================================================
 
-  /*
-   * Example:
-   *
-   * React
-   * React Developer
-   * JavaScript
-   * Node.js
-   *
-   * All searches start together.
-   *
-   * Each discoverJobs() call also searches:
-   *
-   *        Adzuna + Muse
-   *             ↓
-   *         in parallel
-   *
-   * So the complete recommendation flow is
-   * heavily parallelized.
-   */
-
   const results =
     await Promise.allSettled(
       queries.map((query) =>
@@ -329,7 +326,7 @@ export const getRecommendedJobs = async (
     });
 
   // =======================================================
-  // DEDUPLICATE
+  // DEDUPLICATE & FILTER OUT OLD DATES (2024, 2025, etc.)
   // =======================================================
 
   const uniqueJobs =
@@ -342,12 +339,16 @@ export const getRecommendedJobs = async (
       ).values()
     );
 
+  const recentUniqueJobs = uniqueJobs.filter((job) =>
+    isRecentJob(job.postedAt || job.posted_at)
+  );
+
   // =======================================================
   // SCORE JOBS
   // =======================================================
 
   const scoredJobs =
-    uniqueJobs.map((job) => {
+    recentUniqueJobs.map((job) => {
       const match =
         calculateMatchScore(
           job,
@@ -387,21 +388,12 @@ export const getRecommendedJobs = async (
   // RETURN RECOMMENDATION POOL
   // =======================================================
 
-  /*
-   * Previously only 10 jobs were returned.
-   *
-   * That makes the frontend look like there
-   * are only a few jobs available.
-   *
-   * We keep a larger pool here.
-   *
-   * JobsPage can display them progressively
-   * and pagination can work on this pool.
-   */
+  const recommendationJobs = scoredJobs.filter(
+    (job) => job.matchScore >= 5
+  );
 
- const recommendationJobs = scoredJobs.filter(
-    (job) => job.matchScore >= 20
-  ); // .slice(0, 30) yahan se hata diya gaya hai
+  console.log(`[TOTAL STATS] Total unique recent jobs across queries: ${recentUniqueJobs.length}`);
+  console.log(`[TOTAL STATS] Jobs passing >= 5 threshold: ${recommendationJobs.length}`);
 
   return {
     jobs: recommendationJobs,
