@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:skills": "node src/seeders/skillsSeeder.js"
+    "seed:skills": "node database/seeds/seedSkills.js"
   },
   "keywords": [],
   "author": "",

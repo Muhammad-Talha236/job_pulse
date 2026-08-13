@@ -91,7 +91,7 @@ function DashboardNavbar() {
   const navItems = [
     {
       label: "Home",
-      path: "/",
+      path: "/home",
       icon: BriefcaseBusiness,
     },
     {

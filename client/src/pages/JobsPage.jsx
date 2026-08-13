@@ -778,7 +778,7 @@ function JobsPage() {
           HERO
       ====================================================== */}
 
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
+      <section className="relative overflow-visible border-b border-slate-200 bg-white">
 
         <div className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-blue-100/50 blur-3xl" />
 

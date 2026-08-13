@@ -1,48 +1,31 @@
 import axios from "axios";
-
+import pool from "../../config/db.js";
 const MUSE_BASE_URL =
   "https://www.themuse.com/api/public/jobs";
 
 const MAX_RETRIES = 3;
 
-export const searchMuseJobs = async ({
-  query,
-  location,
-  page = 0,
-}) => {
-  for (
-    let attempt = 1;
-    attempt <= MAX_RETRIES;
-    attempt++
-  ) {
+export const searchMuseJobs = async ({ query, location, page = 0 }) => {
+  // Query ke mutabiq dynamic broad category nikalain
+  const mappedCategory = await getMappedMuseCategory(query);
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.log(
-        `Muse request attempt ${attempt}/${MAX_RETRIES}`
-      );
-
-      const response = await axios.get(
-        MUSE_BASE_URL,
-        {
-          params: {
-            page,
-
-            ...(location
-              ? { location }
-              : {}),
-          },
-
-          headers: {
-            Accept: "application/json",
-          },
-
-          timeout: 30000,
-        }
-      );
-
-      console.log(
-        `Muse request successful on attempt ${attempt}`
-      );
-
+      console.log(`Muse request attempt ${attempt}/${MAX_RETRIES} with category: "${mappedCategory}"`);
+      
+      const response = await axios.get(MUSE_BASE_URL, {
+        params: {
+          page,
+          category: mappedCategory, // Yeh ab dynamically broad category pass karega
+          ...(location ? { location } : {}),
+        },
+        headers: {
+          Accept: "application/json",
+        },
+        timeout: 30000,
+      });
+      
+      console.log(`Muse request successful on attempt ${attempt}`);
       return response.data;
     } catch (error) {
       console.error(
@@ -94,3 +77,73 @@ export const searchMuseJobs = async ({
 // already matches the query against title/description/
 // company/location text. This lets Muse contribute broader
 // listings that still get correctly filtered by relevance.
+
+const MUSE_BROAD_CATEGORY_MAP = {
+  // Software / Engineering
+  "Programming Language": "Software Engineering",
+  "Frontend Framework": "Software Engineering",
+  "Backend Framework": "Software Engineering",
+  "Backend Runtime": "Software Engineering",
+  "Mobile Framework": "Software Engineering",
+  "Database": "Software Engineering",
+  "API Technology": "Software Engineering",
+  "Markup Language": "Software Engineering",
+  "Styling Language": "Software Engineering",
+  "JavaScript Library": "Software Engineering",
+  "Backend Skill": "Software Engineering",
+  "Job Title": "Software Engineering",
+  
+  // DevOps & Cloud
+  "Cloud Platform": "Software Engineering",
+  "DevOps Tool": "Software Engineering",
+  "DevOps Practice": "Software Engineering",
+  "System Skill": "Software Engineering",
+  
+  // Data Science & AI
+  "AI / Data Science": "Data Science",
+  "Analytics": "Data Science",
+  "Data Library": "Data Science",
+  
+  // Design & Creative
+  "Design": "Design",
+  "Design Tool": "Design",
+  
+  // Management & Business
+  "Management": "Product Management",
+  "Agile Role": "Product Management",
+  "Methodology": "Product Management",
+  "Business": "Business and Strategy",
+  
+  // Marketing & Writing
+  "Marketing": "Marketing",
+  "Writing": "Writing",
+  "Sales": "Sales",
+  "Support": "Customer Success",
+  "HR": "Human Resources",
+  "Finance": "Finance",
+  "Healthcare": "Healthcare"
+};
+
+export const getMappedMuseCategory = async (query) => {
+  if (!query) return "Software Engineering";
+  
+  try {
+    // Database se skill ki category fetch karein
+    const result = await pool.query(
+      `SELECT category FROM skills WHERE LOWER(name) = LOWER($1) LIMIT 1;`,
+      [query.trim()]
+    );
+    
+    const dbCategory = result.rows[0]?.category;
+    
+    // Agar database category map mein mojood hai toh woh return karein, warna default
+    if (dbCategory && MUSE_BROAD_CATEGORY_MAP[dbCategory]) {
+      return MUSE_BROAD_CATEGORY_MAP[dbCategory];
+    }
+    
+    return "Software Engineering";
+  } catch (error) {
+    console.error("Error mapping Muse category:", error.message);
+    return "Software Engineering";
+  }
+};

@@ -49,7 +49,7 @@ export default function LocationAutocomplete({
       </div>
 
       {open && value.trim().length >= 2 && (
-        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_-20px_rgba(15,23,42,0.3)]">
+        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-64 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_-20px_rgba(15,23,42,0.3)]">
           {loading && (
             <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-500">
               <Loader2 size={15} className="animate-spin" /> Searching locations...
@@ -60,7 +60,7 @@ export default function LocationAutocomplete({
             <div className="px-4 py-3 text-sm text-slate-400">No matching locations found</div>
           )}
           {!loading &&
-            suggestions.map((suggestion) => (
+            suggestions.suggestions?.map((suggestion) => (
               <button
                 key={suggestion.value}
                 type="button"
