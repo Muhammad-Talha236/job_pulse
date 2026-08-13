@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS skills (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    category VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_skills_name_trgm
+    ON skills USING GIN (name gin_trgm_ops);
