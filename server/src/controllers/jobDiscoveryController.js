@@ -7,7 +7,8 @@ import {
 import {
   getRecommendedJobs as generateRecommendedJobs,
 } from "../services/jobs/jobRecommendationService.js";
-
+import { searchSkills } from "../services/search/skillSearchService.js";
+import { searchLocations } from "../services/search/locationSearchService.js";
 import {
   getSuggestions,
   isValidSearchQuery,
@@ -198,60 +199,27 @@ export const getRecommendedJobs = async (
   }
 };
 
-export const getJobSuggestions =
-  async (req, res) => {
-    try {
-      const type = String(
-        req.query.type || ""
-      )
-        .trim()
-        .toLowerCase();
+export const getJobSuggestions = async (req, res) => {
+  try {
+    const type = String(req.query.type || "").trim().toLowerCase();
+    const q = String(req.query.q || "").trim();
 
-      const q = String(
-        req.query.q || ""
-      ).trim();
-
-      if (
-        !["skill", "location"].includes(
-          type
-        )
-      ) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "Suggestion type must be skill or location",
-          });
-      }
-
-      if (q.length < 2) {
-        return res
-          .status(200)
-          .json({
-            suggestions: [],
-          });
-      }
-
-      const data =
-        await generateJobSuggestions({
-          type,
-          query: q,
-        });
-
-      return res
-        .status(200)
-        .json(data);
-    } catch (error) {
-      console.error(
-        "Job suggestions error:",
-        error
-      );
-
-      return res
-        .status(500)
-        .json({
-          message:
-            "Unable to load job suggestions",
-        });
+    if (!["skill", "location"].includes(type)) {
+      return res.status(400).json({
+        message: "Suggestion type must be skill or location",
+      });
     }
-  };
+
+    if (q.length < 2) {
+      return res.status(200).json({ suggestions: [] });
+    }
+
+    const suggestions =
+      type === "location" ? await searchLocations(q) : await searchSkills(q);
+
+    return res.status(200).json({ suggestions });
+  } catch (error) {
+    console.error("Job suggestions error:", error);
+    return res.status(500).json({ message: "Unable to load job suggestions" });
+  }
+};

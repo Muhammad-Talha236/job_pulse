@@ -31,7 +31,8 @@ export const getProfile = async (req, res) => {
         preferred_roles,
         preferred_technologies,
         created_at,
-        updated_at
+        updated_at,
+        preferred_location_details
       FROM user_profiles
       WHERE user_id = $1;
       `,
@@ -81,6 +82,7 @@ export const upsertProfile = async (req, res) => {
       experience_level,
       years_of_experience,
       preferred_location,
+      preferred_location_details,
       preferred_job_type,
       preferred_work_mode,
       skills,
@@ -118,6 +120,7 @@ export const upsertProfile = async (req, res) => {
         experience_level,
         years_of_experience,
         preferred_location,
+        preferred_location_details,
         preferred_job_type,
         preferred_work_mode,
         skills,
@@ -136,7 +139,8 @@ export const upsertProfile = async (req, res) => {
         $9,
         $10,
         $11,
-        $12
+        $12,
+        $13
       )
 
       ON CONFLICT (user_id)
@@ -148,6 +152,7 @@ export const upsertProfile = async (req, res) => {
         experience_level = EXCLUDED.experience_level,
         years_of_experience = EXCLUDED.years_of_experience,
         preferred_location = EXCLUDED.preferred_location,
+        preferred_location_details = EXCLUDED.preferred_location_details,
         preferred_job_type = EXCLUDED.preferred_job_type,
         preferred_work_mode = EXCLUDED.preferred_work_mode,
         skills = EXCLUDED.skills,
@@ -165,6 +170,9 @@ export const upsertProfile = async (req, res) => {
         experience_level || null,
         years_of_experience || 0,
         preferred_location || null,
+        preferred_location_details
+          ? JSON.stringify(preferred_location_details)
+          : null,
         preferred_job_type || null,
         preferred_work_mode || null,
         skills || [],

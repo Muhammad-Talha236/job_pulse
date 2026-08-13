@@ -6,6 +6,7 @@ import {
   getProfile,
   saveProfile,
 } from "../api/profileApi";
+import LocationAutocomplete from "../components/common/LocationAutocomplete";
 
 
 function ProfilePage() {
@@ -26,6 +27,7 @@ function ProfilePage() {
     experience_level: "",
     years_of_experience: 0,
     preferred_location: "",
+    preferred_location_details: null,
     preferred_job_type: "",
     preferred_work_mode: "",
     skills: [],
@@ -73,6 +75,8 @@ function ProfilePage() {
               profile.years_of_experience || 0,
             preferred_location:
               profile.preferred_location || "",
+            preferred_location_details:
+              profile.preferred_location_details || null,
             preferred_job_type:
               profile.preferred_job_type || "",
             preferred_work_mode:
@@ -660,16 +664,35 @@ function ProfilePage() {
                 Preferred Location
               </label>
 
-              <input
+              <LocationAutocomplete
                 id="preferred_location"
-                name="preferred_location"
-                value={
-                  formData.preferred_location
+                value={formData.preferred_location}
+                onChange={(value) =>
+                  setFormData((current) => ({
+                    ...current,
+                    preferred_location: value,
+                  }))
                 }
-                onChange={handleChange}
-                placeholder="e.g. Remote"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onSelect={(locationData) =>
+                  setFormData((current) => ({
+                    ...current,
+                    preferred_location_details: locationData,
+                  }))
+                }
+                placeholder="e.g. Faisalabad, Punjab, Pakistan"
               />
+
+              {formData.preferred_location_details?.country && (
+                <p className="mt-1.5 text-xs text-slate-400">
+                  {[
+                    formData.preferred_location_details.city,
+                    formData.preferred_location_details.state,
+                    formData.preferred_location_details.country,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              )}
 
             </div>
 

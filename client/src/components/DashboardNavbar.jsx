@@ -90,6 +90,11 @@ function DashboardNavbar() {
 
   const navItems = [
     {
+      label: "Home",
+      path: "/",
+      icon: BriefcaseBusiness,
+    },
+    {
       label: "Dashboard",
       path: "/dashboard",
       icon: LayoutDashboard,
